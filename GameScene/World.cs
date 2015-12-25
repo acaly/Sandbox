@@ -34,6 +34,14 @@ namespace Sandbox.GameScene
             }
         }
 
+        public int ChunkLayerHeight
+        {
+            get
+            {
+                return 4;
+            }
+        }
+
         public World(RenderManager renderManager)
         {
             chunks = new CoordDictionary<Chunk, World>(this);
@@ -84,7 +92,7 @@ namespace Sandbox.GameScene
 
         private void InitPhysics()
         {
-            physics = new GridPhysicWorld(ChunkWidth, 0, 0, 1, 1); //TODO
+            physics = new GridPhysicWorld(ChunkLayerHeight, ChunkWidth, 0, 0, 1, 1); //TODO
             x_min = x_max = y_min = y_max = 0;
         }
 
@@ -92,7 +100,7 @@ namespace Sandbox.GameScene
         {
             xsize = (xsize < 1) ? 1 : xsize;
             ysize = (ysize < 1) ? 1 : ysize;
-            physics.ResetGrid(ChunkWidth, xoffset, yoffset, xsize, ysize);
+            physics.ResetGrid(ChunkLayerHeight, ChunkWidth, xoffset, yoffset, xsize, ysize);
         }
 
         private void EnsureChunkForPhysics(int blockX, int blockY)

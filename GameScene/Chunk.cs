@@ -21,6 +21,8 @@ namespace Sandbox.GameScene
         public Vector4 dir_v;
         [RenderDataElement(Format.R32G32B32A32_Float, "COLOR", 0)]
         public Vector4 col;
+        [RenderDataElement(Format.R32G32B32A32_Float, "TEXCOORD", 3)]
+        public Vector4 aooffset;
     }
 
     class Chunk : GridStaticEntity, DictionaryValueInit<World>
@@ -29,7 +31,6 @@ namespace Sandbox.GameScene
 
         private World world;
         private BlockData[] blocks;
-        //private int[] collisionIndex; //0 is none, 1 is 0, 2 is 1, etc.
         private bool[] dirty;
         private int w, h;
         private Vector4 basePosition;
@@ -52,9 +53,6 @@ namespace Sandbox.GameScene
         {
             var blockIndex = x + y * w + z * w * w;
             bool hasCollision = blocks[blockIndex].HasCollision();
-            //TODO internal blocks optimization (move internal blocks into a new array and only test if normal blocks are ignored)
-            //int currentCollision = collisionIndex[blockIndex];
-            //if (hasCollision == (currentCollision != 0)) return;
 
             if (hasCollision)
             {
@@ -67,6 +65,7 @@ namespace Sandbox.GameScene
                     IsNormalCubeBeside(x, y, z, 0, 0, -1)
                     )
                 {
+                    //TODO add to another array?
                     return;
                 }
 
@@ -87,7 +86,6 @@ namespace Sandbox.GameScene
             int blockSize = h * w * w;
             
             blocks = new BlockData[blockSize];
-            //collisionIndex = new int[blockSize];
             dirty = new bool[blockSize];
             basePosition = new Vector4(pos.x, pos.y, pos.z, 0);
             baseCoord = pos;
@@ -95,11 +93,9 @@ namespace Sandbox.GameScene
             base.CollisionArray = new Box[0];
             base.CollisionCount = 0;
             base.Position = new SharpDX.Vector3(pos.x, pos.y, pos.z);
+            base.CollisionSegments = new int[h / init.ChunkLayerHeight + 1];
 
             init.OnNewChunk(pos, this);
-
-            //renderData = RenderData<BlockRenderData>.Create(init.renderManager, 
-            //    SharpDX.Direct3D.PrimitiveTopology.PointList, new BlockRenderData[0]);
         }
 
         public GridStaticEntity GetStaticEntity()
@@ -124,6 +120,74 @@ namespace Sandbox.GameScene
             return GetBlockDataAt(x + offsetX, y + offsetY, z + offsetZ).BlockId != 0;
         }
 
+        private bool MakeAOInner(int x, int y, int z, int dx, int dy, int dz)
+        {
+            bool ret = false;
+            if (dx == 0)
+            {
+                ret = GetBlockDataAt(x, y + dy, z + dz).BlockId != 0 ||
+                    GetBlockDataAt(x, y, z + dz).BlockId != 0 ||
+                    GetBlockDataAt(x, y + dy, z).BlockId != 0;
+            }
+            else if (dy == 0)
+            {
+                ret = GetBlockDataAt(x + dx, y, z + dz).BlockId != 0 ||
+                    GetBlockDataAt(x, y, z + dz).BlockId != 0 ||
+                    GetBlockDataAt(x + dx, y, z).BlockId != 0;
+            }
+            else if (dz == 0)
+            {
+                ret = GetBlockDataAt(x + dx, y + dy, z).BlockId != 0 ||
+                    GetBlockDataAt(x, y + dy, z).BlockId != 0 ||
+                    GetBlockDataAt(x + dx, y, z).BlockId != 0;
+            }
+            return ret;
+        }
+
+        private Vector4 GetAOOffset(int x, int y, int z, int face)
+        {
+            switch (face)
+            {
+                case 5:
+                    return AmbientOcculsionTexture.MakeAOOffset(
+                        MakeAOInner(x + 1, y, z, 0, 1, 1),
+                        MakeAOInner(x + 1, y, z, 0, -1, 1),
+                        MakeAOInner(x + 1, y, z, 0, 1, -1),
+                        MakeAOInner(x + 1, y, z, 0, -1, -1));
+                case 4:
+                    return AmbientOcculsionTexture.MakeAOOffset(
+                        MakeAOInner(x - 1, y, z, 0, 1, 1),
+                        MakeAOInner(x - 1, y, z, 0, 1, -1),
+                        MakeAOInner(x - 1, y, z, 0, -1, 1),
+                        MakeAOInner(x - 1, y, z, 0, -1, -1));
+                case 2:
+                    return AmbientOcculsionTexture.MakeAOOffset(
+                        MakeAOInner(x, y + 1, z, 1, 0, 1),
+                        MakeAOInner(x, y + 1, z, 1, 0, -1),
+                        MakeAOInner(x, y + 1, z, -1, 0, 1),
+                        MakeAOInner(x, y + 1, z, -1, 0, -1));
+                case 3:
+                    return AmbientOcculsionTexture.MakeAOOffset(
+                        MakeAOInner(x, y - 1, z, 1, 0, 1),
+                        MakeAOInner(x, y - 1, z, -1, 0, 1),
+                        MakeAOInner(x, y - 1, z, 1, 0, -1),
+                        MakeAOInner(x, y - 1, z, -1, 0, -1));
+                case 1:
+                    return AmbientOcculsionTexture.MakeAOOffset(
+                        MakeAOInner(x, y, z + 1, 1, 1, 0),
+                        MakeAOInner(x, y, z + 1, -1, 1, 0),
+                        MakeAOInner(x, y, z + 1, 1, -1, 0),
+                        MakeAOInner(x, y, z + 1, -1, -1, 0));
+                case 0:
+                    return AmbientOcculsionTexture.MakeAOOffset(
+                        MakeAOInner(x, y, z - 1, 1, 1, 0),
+                        MakeAOInner(x, y, z - 1, 1, -1, 0),
+                        MakeAOInner(x, y, z - 1, -1, 1, 0),
+                        MakeAOInner(x, y, z - 1, -1, -1, 0));
+            }
+            return new Vector4();
+        }
+
         private void AppendBlockRenderData(int x, int y, int z, BlockData data)
         {
             if (data.BlockId == 0) return;
@@ -134,6 +198,7 @@ namespace Sandbox.GameScene
                 col = new Vector4(1.0f, 0.0f, 0.0f, 1.0f),
                 dir_u = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
+                aooffset = GetAOOffset(x, y, z, 0),
             });
             if (!IsNormalCubeBeside(x, y, z, 0, 0, 1)) renderList.Add(new BlockRenderData
             {
@@ -141,6 +206,7 @@ namespace Sandbox.GameScene
                 col = new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
                 dir_u = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
+                aooffset = GetAOOffset(x, y, z, 1),
             });
             if (!IsNormalCubeBeside(x, y, z, 0, 1, 0)) renderList.Add(new BlockRenderData
             {
@@ -148,6 +214,7 @@ namespace Sandbox.GameScene
                 col = new Vector4(0.0f, 0.0f, 1.0f, 1.0f),
                 dir_u = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
+                aooffset = GetAOOffset(x, y, z, 2),
             });
             if (!IsNormalCubeBeside(x, y, z, 0, -1, 0)) renderList.Add(new BlockRenderData
             {
@@ -155,6 +222,7 @@ namespace Sandbox.GameScene
                 col = new Vector4(1.0f, 1.0f, 0.0f, 1.0f),
                 dir_u = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 dir_v = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
+                aooffset = GetAOOffset(x, y, z, 3),
             });
             if (!IsNormalCubeBeside(x, y, z, -1, 0, 0)) renderList.Add(new BlockRenderData
             {
@@ -162,6 +230,7 @@ namespace Sandbox.GameScene
                 col = new Vector4(1.0f, 0.0f, 1.0f, 1.0f),
                 dir_u = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
+                aooffset = GetAOOffset(x, y, z, 4),
             });
             if (!IsNormalCubeBeside(x, y, z, 1, 0, 0)) renderList.Add(new BlockRenderData
             {
@@ -169,6 +238,7 @@ namespace Sandbox.GameScene
                 col = new Vector4(0.0f, 1.0f, 1.0f, 1.0f),
                 dir_u = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
+                aooffset = GetAOOffset(x, y, z, 5),
             });
         }
 
@@ -178,8 +248,19 @@ namespace Sandbox.GameScene
             collisionList.Clear();
             renderList.Clear();
             int gridId = 0;
+
+            int nextLayerId = 1;
+            int nextLayerStartZ = world.ChunkLayerHeight;
+            base.CollisionSegments[0] = 0;
+
             for (int gridZ = 0; gridZ < h; ++gridZ)
             {
+                if (gridZ >= nextLayerStartZ)
+                {
+                    base.CollisionSegments[nextLayerId++] = collisionList.Count;
+                    nextLayerStartZ += world.ChunkLayerHeight;
+                }
+
                 for (int gridY = 0; gridY < w; ++gridY)
                 {
                     for (int gridX = 0; gridX < w; ++gridX)
@@ -191,16 +272,12 @@ namespace Sandbox.GameScene
                     }
                 }
             }
+            base.CollisionSegments[nextLayerId++] = collisionList.Count;
+
             CollisionCount = collisionList.Count;
             CollisionArray = collisionList.ToArray();
-            //renderData.ResetBuffer(renderList.ToArray(), 0);
         }
 
-        //public RenderData<BlockRenderData> renderData
-        //{
-        //    get;
-        //    private set;
-        //}
         public List<BlockRenderData> RenderDataList
         {
             get

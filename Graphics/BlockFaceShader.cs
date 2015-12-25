@@ -15,6 +15,7 @@ struct VS_IN
     float4 dir_u : TEXCOORD1;
     float4 dir_v : TEXCOORD2;
     float4 col : COLOR;
+    float4 aooffset : TEXCOORD3;
 };
 
 struct GS_IN
@@ -23,6 +24,7 @@ struct GS_IN
     float4 dir_u : TEXCOORD1;
     float4 dir_v : TEXCOORD2;
     float4 col : COLOR;
+    float4 aooffset : TEXCOORD3;
 };
 
 struct PS_IN
@@ -30,6 +32,7 @@ struct PS_IN
 	float4 pos : SV_POSITION;
 	//float4 tex : TEXCOORD0;
     float4 col : COLOR0;
+    float4 aooffset : TEXCOORD3;
 };
 
 cbuffer VS_CONSTANT_BUFFER
@@ -37,8 +40,8 @@ cbuffer VS_CONSTANT_BUFFER
 	float4x4 worldViewProj;
 }
 
-//Texture2D faceTexture : register(t0);
-//SamplerState MeshTextureSampler : register(s1);
+Texture2D faceTexture : register(t0);
+SamplerState MeshTextureSampler : register(s0);
 
 GS_IN VS(VS_IN input)
 {
@@ -47,7 +50,12 @@ GS_IN VS(VS_IN input)
 	output.pos = mul(input.pos, worldViewProj);
     output.dir_u = mul(input.dir_u, worldViewProj);
     output.dir_v = mul(input.dir_v, worldViewProj);
-	output.col = float4(0.6, 0.8, 1.0, 1.0) * input.col;
+	//output.col = float4(0.6, 0.8, 1.0, 1.0) * input.col;
+    output.aooffset = input.aooffset;
+
+    float3 lightdir = normalize(float3(0, 0.6, 4));
+    float nDotL = saturate(0.3 + 0.9 * dot(cross(input.dir_u.xyz, input.dir_v.xyz), -lightdir));
+    output.col = saturate(nDotL * float4(0.4, 1.2, 0.0, 1.0));
 
 	return output;
 }
@@ -74,6 +82,14 @@ void GS(point GS_IN input[1], inout TriangleStream<PS_IN> triStream)
     point_pn.pos = input[0].pos + input[0].dir_u - input[0].dir_v;
     point_np.pos = input[0].pos - input[0].dir_u + input[0].dir_v;
     point_nn.pos = input[0].pos - input[0].dir_u - input[0].dir_v;
+
+    //input[0].aooffset = float4(0.25, 0.25, 0, 0);
+    float ao1 = 0.25 / 4, ao2 = 0.25 - ao1;
+    point_pp.aooffset = input[0].aooffset + float4(ao2,ao2,0,   0);
+    point_pn.aooffset = input[0].aooffset + float4(ao2,ao1,0,   0);
+    point_np.aooffset = input[0].aooffset + float4(ao1,ao2,0,   0);
+    point_nn.aooffset = input[0].aooffset + float4(ao1,ao1,0,   0);
+    //point_np.col = float4(1, 1, 1, 0);
     
 	triStream.Append(point_pp);
 	triStream.Append(point_pn);
@@ -89,9 +105,10 @@ float4 PS(PS_IN input) : SV_Target
     //coord.y = floor(coord.y) / 16;
     
     //float4 col = faceTexture.Sample(MeshTextureSampler, coord);
-    //float4 col = faceTexture.Sample(MeshTextureSampler, input.tex.xy);
-
-    return input.col;
+    float4 aocolor = faceTexture.Sample(MeshTextureSampler, input.aooffset.xy);
+    float4 ret = input.col;
+    ret = ret * (1 - aocolor.r * 0.2);
+    return ret;
 }
 ";
     }

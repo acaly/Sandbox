@@ -10,19 +10,20 @@ namespace Sandbox.Physics
     //2D grid
     class GridPhysicWorld
     {
-        public GridPhysicWorld(float gridSize, int gridXOffset, int gridYOffset, int gridXSize, int gridYSize)
+        public GridPhysicWorld(float layerSize, float gridSize, int gridXOffset, int gridYOffset, int gridXSize, int gridYSize)
         {
-            this.Reset(gridSize, gridXOffset, gridYOffset, gridXSize, gridYSize, null);
+            this.Reset(layerSize, gridSize, gridXOffset, gridYOffset, gridXSize, gridYSize, null);
         }
 
-        public void ResetGrid(float gridSize, int gridXOffset, int gridYOffset, int gridXSize, int gridYSize)
+        public void ResetGrid(float layerSize, float gridSize, int gridXOffset, int gridYOffset, int gridXSize, int gridYSize)
         {
-            Reset(gridSize, gridXOffset, gridYOffset, gridXSize, gridYSize, grids);
+            Reset(layerSize, gridSize, gridXOffset, gridYOffset, gridXSize, gridYSize, grids);
         }
 
-        private void Reset(float gridSize, int gridXOffset, int gridYOffset, int gridXSize, int gridYSize, Grid[] oldgrids)
+        private void Reset(float layerSize, float gridSize, int gridXOffset, int gridYOffset, int gridXSize, int gridYSize, Grid[] oldgrids)
         {
             this.GridSize = gridSize;
+            this.LayerSize = layerSize;
             this.grids = new Grid[gridXSize * gridYSize];
             this.gridOffsetX = gridXOffset;
             this.gridOffsetY = gridYOffset;
@@ -52,17 +53,18 @@ namespace Sandbox.Physics
             }
         }
 
-        private float GridSize;
+        private float GridSize, LayerSize;
 
         private struct EntityInfoInGrids
         {
             public Entity entity;
             public PerEntityData collisionData;
 
-            public EntityInfoInGrids(Entity entity)
+            public EntityInfoInGrids(Entity entity, GridPhysicWorld world)
             {
                 this.entity = entity;
                 this.collisionData = new PerEntityData();
+                this.collisionData.entityRange = (int)Math.Ceiling(entity.MaxSize / world.GridSize);
             }
         }
 
@@ -136,6 +138,7 @@ namespace Sandbox.Physics
 
         private int GetGridFromEntityPosition(Vector3 pos)
         {
+            //FIXME return -1!
             int gridX = (int)Math.Floor(pos.X / GridSize) + gridOffsetX;
             int gridY = (int)Math.Floor(pos.Y / GridSize) + gridOffsetY;
             return gridX + gridY * gridSizeX;
@@ -163,7 +166,7 @@ namespace Sandbox.Physics
                 }
                 else
                 {
-                    maxEntitySize = Math.Max(maxEntitySize, (int)Math.Ceiling(entitiesInGrid[i].entity.MaxSize / GridSize));
+                    maxEntitySize = Math.Max(maxEntitySize, entitiesInGrid[i].collisionData.entityRange);
                 }
             }
 
@@ -201,10 +204,10 @@ namespace Sandbox.Physics
             var entitiesInGrid = grids[grid].entities;
 
             //add to list
-            entitiesInGrid[entityCountInGrid] = new EntityInfoInGrids(entity);
+            entitiesInGrid[entityCountInGrid] = new EntityInfoInGrids(entity, this);
 
             //update max size
-            var maxSizeOfEntity = (int)Math.Ceiling(entity.MaxSize / GridSize);
+            var maxSizeOfEntity = entitiesInGrid[entityCountInGrid].collisionData.entityRange;
             if (maxSizeOfEntity > 1)
             {
                 //large entity is not supported yet
@@ -290,11 +293,14 @@ namespace Sandbox.Physics
 
         private struct PerEntityData
         {
+            //(int)Math.Ceiling(entity.MaxSize / GridSize)
+            public int entityRange;
+
             public Movement nextMove;
-            //public Vector3 nextVelocity;
             public float currentTime;
-            //public bool issolving;
-            public int adjustment; //1:x,2:y,4:z
+
+            //whether adjustment has been made on each direction. 1:x,2:y,4:z
+            public int adjustment;
 
             public float nextCollision;
             public Vector3 velocityUpdateFactor;
@@ -302,9 +308,9 @@ namespace Sandbox.Physics
 
         private float collision_time;
 
-
         private static bool TestDistWithMargin(ref Vector3 dist, ref Vector3 r, float margin)
         {
+            //TODO avoid using Math.Abs
             return r.X > Math.Abs(dist.X) + margin && r.Y > Math.Abs(dist.Y) + margin && r.Z > Math.Abs(dist.Z) + margin;
         }
 
@@ -398,10 +404,18 @@ namespace Sandbox.Physics
 
         private void TestEntityWithStatic(int gridId, int entityId)
         {
-            TestEntityWithStatic(gridId, entityId, gridId);
-            foreach (int adjacent in grids[gridId].adjacents)
+            if (grids[gridId].entities[entityId].collisionData.entityRange > 1)
             {
-                TestEntityWithStatic(gridId, entityId, adjacent);
+                //large entity collision is not supported
+                throw new Exception();
+            }
+            else
+            {
+                TestEntityWithStatic(gridId, entityId, gridId);
+                foreach (int adjacent in grids[gridId].adjacents)
+                {
+                    TestEntityWithStatic(gridId, entityId, adjacent);
+                }
             }
         }
 
@@ -429,7 +443,21 @@ namespace Sandbox.Physics
             var result_time = 1.0f;
             var result_face = 0;
 
-            for (int boxId = 0; boxId < gridBoxCount; ++boxId)
+            //calculate the layer of the entity
+            int boxBegin, boxEnd;
+            {
+                int layerIndex = (int)Math.Floor(entityBox.center.Z / LayerSize);
+                int layerBegin = layerIndex > 0 ? layerIndex - 1 : 0;
+                int layerEnd = layerIndex + 1;
+                if (layerEnd >= theGrid.staticEntity.CollisionSegments.Length)
+                {
+                    layerEnd = theGrid.staticEntity.CollisionSegments.Length - 1;
+                }
+                boxBegin = theGrid.staticEntity.CollisionSegments[layerBegin];
+                boxEnd = theGrid.staticEntity.CollisionSegments[layerEnd];
+            }
+
+            for (int boxId = boxBegin; boxId < boxEnd; ++boxId)
             {
                 Box gridBox = gridBoxes[boxId];
                 gridBox.center += gridPos;
@@ -563,20 +591,15 @@ namespace Sandbox.Physics
                 theGridOfEntity.entities[entityId].collisionData.nextCollision = result_time_ratio;
 
                 //set velocity update
-                switch (result_face)
-                {
-                case 0:
-                    theGridOfEntity.entities[entityId].collisionData.velocityUpdateFactor = oldVelocity * new Vector3(0, 1, 1);
-                    break;
-                case 1:
-                    theGridOfEntity.entities[entityId].collisionData.velocityUpdateFactor = oldVelocity * new Vector3(1, 0, 1);
-                    break;
-                case 2:
-                    theGridOfEntity.entities[entityId].collisionData.velocityUpdateFactor = oldVelocity * new Vector3(1, 1, 0);
-                    break;
-                }
+                theGridOfEntity.entities[entityId].collisionData.velocityUpdateFactor = oldVelocity * reflectionFactor[result_face];
             }
         }
+
+        private static readonly Vector3[] reflectionFactor = new[]{
+            new Vector3(0, 1, 1),
+            new Vector3(1, 0, 1),
+            new Vector3(1, 1, 0),
+        };
 
         private void TestEntityWithEntity(int gridIdA, int entityIdA, int gridIdB, int entityIdB)
         {
@@ -599,12 +622,11 @@ namespace Sandbox.Physics
                     //this is used to check if a collision exist (also needed to update)
                     entitiesInGrid[j].collisionData.nextCollision = 1.0f;
 
-                    var friction = -1.5f; //TODO allow different value for each entity
+                    var friction = -2.5f; //TODO allow different value for each entity
                     var v = entity.Velocity * (1 + friction * time) + entity.Acceloration * time;
 
                     entitiesInGrid[j].collisionData.nextMove.pos = entity.Position;
                     entitiesInGrid[j].collisionData.nextMove.v = v;
-                    //entitiesInGrid[j].collisionData.nextVelocity = v;
 
                     entitiesInGrid[j].collisionData.currentTime = 0.0f;
 
@@ -728,30 +750,10 @@ namespace Sandbox.Physics
                 entitiesInTheGrid[collision.EntityId].collisionData.velocityUpdateFactor = new Vector3(1, 1, 1);
                 entitiesInTheGrid[collision.EntityId].collisionData.nextCollision = 1.0f;
 
-                //OK//TODO apply velocity update (only for those with endTime)
-                //OK//clear collision time equals to endtime to 1
-
-                //OK//TODO update movement
-                {
-                    //float startTime = this.collision_start_ratio;
-                    //float movementTime = this.collision_endTime - startTime;
-                    //float realtime = movementTime * time;
-
-                    //for (int i = 0; i < entities.Count; ++i)
-                    //{
-                    //    perEntityData[i].nextMove.pos += perEntityData[i].nextMove.v * realtime;
-                    //    perEntityData[i].nextMove.v = perEntityData[i].nextVelocity;
-                    //}
-                    //TODO don't calculate movement for every entity every time?
-                }
-
                 //check for secondary collision
                 {
-                    //check with static
                     TestEntityWithStatic(collision.GridId, collision.EntityId);
-                    //TODO check with entities
                 }
-                //removed//this.collision_start_ratio = this.collision_endTime;
 
             } //iterate through each collision
 

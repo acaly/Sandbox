@@ -28,17 +28,6 @@ other: 11.4
 
 namespace Sandbox
 {
-    public struct VertexData
-    {
-        [RenderDataElement(Format.R32G32B32A32_Float, "POSITION", 0)]
-        public Vector4 pos;
-        [RenderDataElement(Format.R32G32B32A32_Float, "TEXCOORD", 1)]
-        public Vector4 dir_u;
-        [RenderDataElement(Format.R32G32B32A32_Float, "TEXCOORD", 2)]
-        public Vector4 dir_v;
-        [RenderDataElement(Format.R32G32B32A32_Float, "COLOR", 0)]
-        public Vector4 col;
-    }
 
     public struct VertexConstData
     {
@@ -50,22 +39,6 @@ namespace Sandbox
         [STAThread]
         static void Main()
         {
-
-            //for (int i = -10; i <= 10; ++i)
-            //{
-            //    for (int j = -10; j <= 10; ++j)
-            //    {
-            //        theWorld.SetBlock(i, j, 0, new GameScene.BlockData { BlockId = 1 });
-            //        if (i == 10 || i == -10 || j == 10 || j == -10)
-            //        {
-            //            for (int k = 1; k < 5; ++k)
-            //            {
-            //                theWorld.SetBlock(i, j, k, new GameScene.BlockData { BlockId = 1 });
-            //            }
-            //        }
-            //    }
-            //}
-
             using (RenderManager rm = new RenderManager())
             {
                 rm.InitDevice();
@@ -74,17 +47,6 @@ namespace Sandbox
                 GameScene.Camera camera = new GameScene.Camera(new Vector3(0, 0, 70));
                 RenderDataManager rdm = new RenderDataManager(theWorld);
 
-                //for (int i = -4; i <= 4; ++i)
-                //{
-                //    for (int j = -4; j <= 4; ++j)
-                //    {
-                //        theWorld.SetBlock(i, j, 0, new BlockData { BlockId = 1 });
-                //        if (i == 4 || i == -4 || j == 4 || j == -4)
-                //        //{
-                //            theWorld.SetBlock(i, j, 1, new BlockData { BlockId = 1 });
-                //        //}
-                //    }
-                //}
                 {
                     byte[] blockdata;
                     using (FileStream fs = File.OpenRead(@"blocks.bin"))
@@ -101,22 +63,38 @@ namespace Sandbox
                             {
                                 if (blockdata[blockdataindex++] != 0)
                                 {
-                                    //if (
-                                        //j >= -25 && j <= 25
-                                        //&& i >= -10 && i <= 10
-                                        //&& k >= -10 && k <= 10
-                                    //    )
-                                    {
-                                        theWorld.SetBlock(i, k, j + 55, new BlockData { BlockId = 1 });
-                                    }
+                                    theWorld.SetBlock(i, k, j + 55, new BlockData { BlockId = 1 });
                                 }
                             }
                         }
                     }
                 }
+                //for (int x = -4; x <= 4; ++x)
+                //{
+                //    for (int y = -4; y <= 4; ++y)
+                //    {
+                //        theWorld.SetBlock(x, y, 55, new BlockData { BlockId = 1 });
+                //        if (x == -4 || x == 4 || y == -4 || y == 4)
+                //        {
+                //            theWorld.SetBlock(x, y, 56, new BlockData { BlockId = 1 });
+                //        }
+                //    }
+                //}
+                //theWorld.SetBlock(0, 0, 56, new BlockData { BlockId = 1 });
+                //theWorld.SetBlock(1, 0, 56, new BlockData { BlockId = 1 });
+                //theWorld.SetBlock(1, 0, 57, new BlockData { BlockId = 1 });
+                //theWorld.SetBlock(1, 1, 57, new BlockData { BlockId = 1 });
 
 
                 var shaderFace = Shader<VertexConstData>.CreateFromString(rm, BlockFaceShader.Value);
+                shaderFace.CreateSamplerForPixelShader(0, new SamplerStateDescription
+                {
+                    Filter = Filter.MinMagMipLinear,
+                    AddressU = TextureAddressMode.Border,
+                    AddressV = TextureAddressMode.Border,
+                    AddressW = TextureAddressMode.Border,
+                });
+                var aotexture = new AmbientOcculsionTexture(rm);
 
                 foreach (var chunk in theWorld.chunkList)
                 {
@@ -124,6 +102,7 @@ namespace Sandbox
                 }
                 rdm.Flush();
                 rdm.renderData.SetLayoutFromShader(shaderFace); //TODO merge into world
+                rdm.renderData.SetResourceForPixelShader(0, aotexture.ResourceView);
 
                 camera.SetForm(rm.Form);
                 theWorld.AddEntity(camera);
@@ -145,6 +124,8 @@ namespace Sandbox
                 //    }
                 //}));
                 //physicsThread.Start();
+                
+                GC.Collect();
 
                 RenderLoopHelper.Run(rm, false, delegate(RenderContext frame)
                 {

@@ -11,6 +11,8 @@ namespace Sandbox.Physics
     {
         public Box[] CollisionArray;
         public int CollisionCount;
+        public int[] CollisionSegments;
+
         public Vector3 Position;
     }
 }
