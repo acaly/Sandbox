@@ -12,7 +12,7 @@ namespace Sandbox.GameScene
     }
 
     public class CoordDictionary<TValue, TInit>
-        where TValue : DictionaryValueInit<TInit>, new()
+        where TValue : class, DictionaryValueInit<TInit>, new()
     {
         private struct Node
         {
@@ -104,20 +104,21 @@ namespace Sandbox.GameScene
         public TValue Get(WorldCoord pos)
         {
             int s = GetStartPosition(pos, (uint)nodes.Length);
-            if (nodes[s].next == 0) return default(TValue);
+            if (nodes[s].next == 0) return null;
             while (true)
             {
                 if (nodes[s].key.x == pos.x && nodes[s].key.y == pos.y && nodes[s].key.z == pos.z)
                 {
                     return nodes[s].value;
                 }
-                if (nodes[s].next == -1) return default(TValue);
+                if (nodes[s].next == -1) return null;
                 s = nodes[s].next - 1;
             }
         }
 
         private TValue AutoCreate(WorldCoord pos)
         {
+            ++count;
             TValue ret = new TValue();
             ret.Init(initValue, pos);
             return ret;
@@ -153,10 +154,12 @@ namespace Sandbox.GameScene
                 Node[] newArray = new Node[newSize];
                 foreach (Node node in nodes)
                 {
+                    if (node.next == 0) continue;
                     int s = GetStartPosition(node.key, (uint)newArray.Length);
                     if (newArray[s].next == 0)
                     {
                         newArray[s].key = node.key;
+                        newArray[s].value = node.value;
                         newArray[s].next = -1;
                     }
                     else
@@ -168,6 +171,7 @@ namespace Sandbox.GameScene
                         }
                         newArray[s].next = free + 1;
                         newArray[free].key = node.key;
+                        newArray[free].value = node.value;
                         newArray[free].next = -1;
                     }
                 }
@@ -175,32 +179,9 @@ namespace Sandbox.GameScene
             }
         }
 
-        private void Add(WorldCoord pos, TValue value)
-        {
-            EnsureSize();
-            ++count;
-
-            int s = GetStartPosition(pos, (uint)nodes.Length);
-            if (nodes[s].next == 0)
-            {
-                nodes[s].key = pos;
-                nodes[s].next = -1;
-                nodes[s].value = value;
-                return;
-            }
-            int free = GetFree(nodes);
-            while (nodes[s].next != -1)
-            {
-                s = nodes[s].next - 1;
-            }
-            nodes[s].next = free + 1;
-            nodes[free].key = pos;
-            nodes[free].next = -1;
-            nodes[free].value = value;
-        }
-
         public TValue GetOrCreate(WorldCoord pos)
         {
+            EnsureSize();
             int s = GetStartPosition(pos, (uint)nodes.Length);
             if (nodes[s].next == 0)
             {

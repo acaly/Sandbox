@@ -46,13 +46,18 @@ namespace Sandbox.Graphics
     {
         private RenderData() { }
 
-        public static RenderData<T> Create(RenderManager manager, PrimitiveTopology topology, T[] data)
+        public static RenderData<T> Create(RenderManager manager, PrimitiveTopology topology, T[] data, int count = 0)
         {
+            if (count == 0)
+            {
+                count = data.Length;
+            }
+
             RenderData<T> ret = new RenderData<T>();
             ret.topology = topology;
             ret.device = manager.Device;
             ret.stride = Utilities.SizeOf<T>();
-            ret.ResetBuffer(data, 0);
+            ret.ResetBuffer(data, count);
 
             return ret;
         }
@@ -108,9 +113,6 @@ namespace Sandbox.Graphics
                 if (vertexBuffer != null)
                 {
                     vertexBuffer.Dispose();
-                }
-                else
-                {
                 }
                 vertexBuffer = Buffer.Create<T>(device, BindFlags.VertexBuffer, data, size * Utilities.SizeOf<T>());
                 count = data.Length;

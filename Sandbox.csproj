@@ -70,6 +70,8 @@
     <Compile Include="Graphics\DefaultShader.cs" />
     <Compile Include="Graphics\RenderContext.cs" />
     <Compile Include="Graphics\RenderData.cs" />
+    <Compile Include="GameScene\RenderDataManager.cs" />
+    <Compile Include="Graphics\RenderLoopHelper.cs" />
     <Compile Include="Graphics\RenderManager.cs" />
     <Compile Include="Graphics\Shader.cs" />
     <Compile Include="MultiCube.cs" />

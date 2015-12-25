@@ -29,7 +29,7 @@ namespace Sandbox.GameScene
 
         private World world;
         private BlockData[] blocks;
-        private int[] collisionIndex; //0 is none, 1 is 0, 2 is 1, etc.
+        //private int[] collisionIndex; //0 is none, 1 is 0, 2 is 1, etc.
         private bool[] dirty;
         private int w, h;
         private Vector4 basePosition;
@@ -48,26 +48,34 @@ namespace Sandbox.GameScene
             dirty[blockIndex] = true;
         }
 
-        private void UpdateBlockCollision(int x, int y, int z)
+        private void AppendBlockCollision(int x, int y, int z)
         {
             var blockIndex = x + y * w + z * w * w;
             bool hasCollision = blocks[blockIndex].HasCollision();
             //TODO internal blocks optimization (move internal blocks into a new array and only test if normal blocks are ignored)
-            int currentCollision = collisionIndex[blockIndex];
-            if (hasCollision == (currentCollision != 0)) return;
+            //int currentCollision = collisionIndex[blockIndex];
+            //if (hasCollision == (currentCollision != 0)) return;
 
             if (hasCollision)
             {
+                if (
+                    IsNormalCubeBeside(x, y, z, 1, 0, 0) &&
+                    IsNormalCubeBeside(x, y, z, -1, 0, 0) &&
+                    IsNormalCubeBeside(x, y, z, 0, 1, 0) &&
+                    IsNormalCubeBeside(x, y, z, 0, -1, 0) &&
+                    IsNormalCubeBeside(x, y, z, 0, 0, 1) &&
+                    IsNormalCubeBeside(x, y, z, 0, 0, -1)
+                    )
+                {
+                    return;
+                }
+
                 //add
-                base.CollisionArray[base.CollisionCount++] = new Box
+                collisionList.Add(new Box
                 {
                     center = new SharpDX.Vector3(x, y, z),
                     halfSize = new SharpDX.Vector3(0.5f, 0.5f, 0.5f),
-                };
-            }
-            else
-            {
-                base.CollisionArray[currentCollision] = base.CollisionArray[--base.CollisionCount];
+                });
             }
         }
 
@@ -79,19 +87,19 @@ namespace Sandbox.GameScene
             int blockSize = h * w * w;
             
             blocks = new BlockData[blockSize];
-            collisionIndex = new int[blockSize];
+            //collisionIndex = new int[blockSize];
             dirty = new bool[blockSize];
             basePosition = new Vector4(pos.x, pos.y, pos.z, 0);
             baseCoord = pos;
 
-            base.CollisionArray = new Box[blockSize];
+            base.CollisionArray = new Box[0];
             base.CollisionCount = 0;
             base.Position = new SharpDX.Vector3(pos.x, pos.y, pos.z);
 
             init.OnNewChunk(pos, this);
 
-            renderData = RenderData<BlockRenderData>.Create(init.renderManager, 
-                SharpDX.Direct3D.PrimitiveTopology.PointList, new BlockRenderData[0]);
+            //renderData = RenderData<BlockRenderData>.Create(init.renderManager, 
+            //    SharpDX.Direct3D.PrimitiveTopology.PointList, new BlockRenderData[0]);
         }
 
         public GridStaticEntity GetStaticEntity()
@@ -100,6 +108,7 @@ namespace Sandbox.GameScene
         }
 
         private List<BlockRenderData> renderList = new List<BlockRenderData>();
+        private List<Box> collisionList;
 
         private BlockData GetBlockDataAt(int x, int y, int z)
         {
@@ -165,6 +174,8 @@ namespace Sandbox.GameScene
 
         public void Flush()
         {
+            collisionList = world.collisionBuffer;
+            collisionList.Clear();
             renderList.Clear();
             int gridId = 0;
             for (int gridZ = 0; gridZ < h; ++gridZ)
@@ -173,23 +184,29 @@ namespace Sandbox.GameScene
                 {
                     for (int gridX = 0; gridX < w; ++gridX)
                     {
-                        if (dirty[gridId])
-                        {
-                            UpdateBlockCollision(gridX, gridY, gridZ);
-                        }
+                        AppendBlockCollision(gridX, gridY, gridZ);
                         AppendBlockRenderData(gridX, gridY, gridZ, blocks[gridId]);
 
                         ++gridId;
                     }
                 }
             }
-            renderData.ResetBuffer(renderList.ToArray(), 0);
+            CollisionCount = collisionList.Count;
+            CollisionArray = collisionList.ToArray();
+            //renderData.ResetBuffer(renderList.ToArray(), 0);
         }
 
-        public RenderData<BlockRenderData> renderData
+        //public RenderData<BlockRenderData> renderData
+        //{
+        //    get;
+        //    private set;
+        //}
+        public List<BlockRenderData> RenderDataList
         {
-            get;
-            private set;
+            get
+            {
+                return renderList;
+            }
         }
     }
 }

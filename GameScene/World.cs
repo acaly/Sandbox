@@ -15,11 +15,14 @@ namespace Sandbox.GameScene
         public List<Chunk> chunkList = new List<Chunk>();
         public RenderManager renderManager;
 
+        //used by chunks to make their collision list
+        public List<Box> collisionBuffer = new List<Box>();
+
         public int ChunkWidth
         {
             get
             {
-                return 16;
+                return 8;
             }
         }
 
@@ -48,7 +51,10 @@ namespace Sandbox.GameScene
                 y = ChunkWidth * (int)Math.Floor((float)y / ChunkWidth),
                 z = 0,
             };
-            var chunk = chunks.GetOrCreate(chunkCoord);
+            var chunk = chunks.Get(chunkCoord);
+
+            if (chunk == null) return new BlockData();
+
             return chunk.GetBlock(x - chunkCoord.x, y - chunkCoord.y, z);
         }
 

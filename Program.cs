@@ -4,8 +4,10 @@ using SharpDX;
 using SharpDX.D3DCompiler;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
+using SharpDX.Windows;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -69,17 +71,47 @@ namespace Sandbox
                 rm.InitDevice();
 
                 GameScene.World theWorld = new GameScene.World(rm);
-                GameScene.Camera camera = new GameScene.Camera(new Vector3(0, 0, 6));
+                GameScene.Camera camera = new GameScene.Camera(new Vector3(0, 0, 70));
+                RenderDataManager rdm = new RenderDataManager(theWorld);
 
-                for (int i = -4; i <= 4; ++i)
+                //for (int i = -4; i <= 4; ++i)
+                //{
+                //    for (int j = -4; j <= 4; ++j)
+                //    {
+                //        theWorld.SetBlock(i, j, 0, new BlockData { BlockId = 1 });
+                //        if (i == 4 || i == -4 || j == 4 || j == -4)
+                //        //{
+                //            theWorld.SetBlock(i, j, 1, new BlockData { BlockId = 1 });
+                //        //}
+                //    }
+                //}
                 {
-                    for (int j = -4; j <= 4; ++j)
+                    byte[] blockdata;
+                    using (FileStream fs = File.OpenRead(@"blocks.bin"))
                     {
-                        theWorld.SetBlock(i, j, 0, new BlockData { BlockId = 1 });
-                        if (i == 4 || i == -4 || j == 4 || j == -4)
-                        //{
-                            theWorld.SetBlock(i, j, 1, new BlockData { BlockId = 1 });
-                        //}
+                        blockdata = new byte[fs.Length];
+                        fs.Read(blockdata, 0, blockdata.Length);
+                    }
+                    int blockdataindex = 0;
+                    for (int i = -50; i <= 50; ++i)
+                    {
+                        for (int j = -50; j < 50; ++j)
+                        {
+                            for (int k = -50; k < 50; ++k)
+                            {
+                                if (blockdata[blockdataindex++] != 0)
+                                {
+                                    //if (
+                                        //j >= -25 && j <= 25
+                                        //&& i >= -10 && i <= 10
+                                        //&& k >= -10 && k <= 10
+                                    //    )
+                                    {
+                                        theWorld.SetBlock(i, k, j + 55, new BlockData { BlockId = 1 });
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -89,8 +121,9 @@ namespace Sandbox
                 foreach (var chunk in theWorld.chunkList)
                 {
                     chunk.Flush();
-                    chunk.renderData.SetLayoutFromShader(shaderFace);
                 }
+                rdm.Flush();
+                rdm.renderData.SetLayoutFromShader(shaderFace); //TODO merge into world
 
                 camera.SetForm(rm.Form);
                 theWorld.AddEntity(camera);
@@ -99,53 +132,38 @@ namespace Sandbox
 
                 rm.ImmediateContext.ApplyShader(shaderFace);
 
-                var renderThread = new Thread(new ThreadStart(delegate()
+                EventWaitHandle physicsStartEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+                EventWaitHandle physicsFinishEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+
+                //Thread physicsThread = new Thread(new ThreadStart(delegate
+                //{
+                //    while (true)
+                //    {
+                //        physicsStartEvent.WaitOne();
+                //        theWorld.StepPhysics(1.0f / 60);
+                //        physicsFinishEvent.Set();
+                //    }
+                //}));
+                //physicsThread.Start();
+
+                RenderLoopHelper.Run(rm, false, delegate(RenderContext frame)
                 {
-                    float last_time = 0;
-                    while (true)
-                    {
-                        var frame = rm.NextFrame(true);
-                        if (frame == null) break;
+                    camera.Step();
 
-                        float time = frame.TotalTimeMilliseconds / 1000.0f;
-                        if (time - last_time >= 2)
-                        {
-                            var fps = frame.Fps;
-                            last_time = time;
-                        }
+                    //physicsStartEvent.Set();
+                    theWorld.StepPhysics(1.0f / 60);
 
-                        theWorld.StepPhysics(1.0f / 60);
-                        if (camera.Position.Z < 1.5f)
-                        {
-                        }
-                        camera.Step();
+                    shaderFace.buffer.transform = Matrix.Multiply(camera.GetViewMatrix(), proj);
+                    shaderFace.buffer.transform.Transpose();
+                    frame.UpdateShaderConstant(shaderFace);
 
-                        var view = camera.GetViewMatrix();
-                        var viewProj = Matrix.Multiply(view, proj);
-                        //shaderFace.buffer.transform = Matrix.RotationX(time) * Matrix.RotationY(time * 2) * Matrix.RotationZ(time * .7f) * viewProj;
-                        shaderFace.buffer.transform = viewProj;
-                        shaderFace.buffer.transform.Transpose();
-                        frame.UpdateShaderConstant(shaderFace);
+                    rm.ImmediateContext.SetRenderData(rdm.renderData);
+                    frame.Draw(rdm.renderData);
 
-                        //frame.Draw(renderDataFace);
+                    frame.Present(false);
 
-                        foreach (var chunk in theWorld.chunkList)
-                        {
-                            rm.ImmediateContext.SetRenderData(chunk.renderData);
-                            frame.Draw(chunk.renderData);
-                        }
-
-                        frame.Present(false);
-                    }
-                }));
-
-                rm.ShowWindow();
-                renderThread.Start();
-                while (!rm.FormIsClosed())
-                {
-                    Application.DoEvents();
-                }
-                renderThread.Abort(); //TODO abort is a little bit dangerous?
+                    //physicsFinishEvent.WaitOne();
+                });
             }
         }
     }
