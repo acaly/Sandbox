@@ -75,7 +75,7 @@ namespace Sandbox.Physics
             public int max_entity_size;
             public float minX, minY, maxX, maxY;
             public GridStaticEntity staticEntity;
-            public int[] adjacents;
+            public int[] adjacents; //also include itself
             public Vector3 basePosition;
         }
 
@@ -229,6 +229,7 @@ namespace Sandbox.Physics
                 {
                     {
                         adjacent_list.Clear();
+                        adjacent_list.Add(gridId);
                         bool nx = i > -gridOffsetX, px = i < gridSizeX - gridOffsetX - 1,
                             ny = j > -gridOffsetY, py = j < gridSizeY - gridOffsetY - 1;
                         if (ny) adjacent_list.Add(gridId - gridSizeX);
@@ -304,6 +305,8 @@ namespace Sandbox.Physics
 
             public float nextCollision;
             public Vector3 velocityUpdateFactor;
+
+            public AdditionalCollision[] cachedAdditionalCollision;
         }
 
         private float collision_time;
@@ -411,12 +414,42 @@ namespace Sandbox.Physics
             }
             else
             {
-                TestEntityWithStatic(gridId, entityId, gridId);
                 foreach (int adjacent in grids[gridId].adjacents)
                 {
                     TestEntityWithStatic(gridId, entityId, adjacent);
                 }
             }
+        }
+
+        private bool TestAdditionalBoxWithStatic(Box box, Vector3 offset, int gridId, int layerBegin, int layerEnd)
+        {
+            var theGrid = grids[gridId];
+
+            var gridBoxes = theGrid.staticEntity.CollisionArray; //should add grid pos
+            var gridBoxCount = theGrid.staticEntity.CollisionCount;
+            var gridPos = theGrid.staticEntity.Position;
+
+            int boxBegin, boxEnd;
+            {
+                boxBegin = theGrid.staticEntity.CollisionSegments[layerBegin];
+                boxEnd = theGrid.staticEntity.CollisionSegments[layerEnd];
+            }
+
+            for (int boxId = boxBegin; boxId < boxEnd; ++boxId)
+            {
+                Box gridBox = gridBoxes[boxId];
+                gridBox.center += gridPos;
+
+                Vector3 dist = box.center - gridBox.center;
+                Vector3 range = gridBox.halfSize + box.halfSize;
+                
+                if (TestDistWithMargin(ref dist, ref range, 0.0f))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void TestEntityWithStatic(int gridIdOfEntity, int entityId, int gridId)
@@ -446,6 +479,7 @@ namespace Sandbox.Physics
             //calculate the layer of the entity
             int boxBegin, boxEnd;
             {
+                //TODO support for large entity?
                 int layerIndex = (int)Math.Floor(entityBox.center.Z / LayerSize);
                 int layerBegin = layerIndex > 0 ? layerIndex - 1 : 0;
                 int layerEnd = layerIndex + 1;
@@ -622,8 +656,8 @@ namespace Sandbox.Physics
                     //this is used to check if a collision exist (also needed to update)
                     entitiesInGrid[j].collisionData.nextCollision = 1.0f;
 
-                    var friction = -2.5f; //TODO allow different value for each entity
-                    var v = entity.Velocity * (1 + friction * time) + entity.Acceloration * time;
+                    var friction = -1.0f; //TODO allow different value for each entity
+                    var v = entity.Velocity + entity.Velocity * new Vector3(1, 1, 0) * friction * time + entity.Acceloration * time;
 
                     entitiesInGrid[j].collisionData.nextMove.pos = entity.Position;
                     entitiesInGrid[j].collisionData.nextMove.v = v;
@@ -632,6 +666,15 @@ namespace Sandbox.Physics
 
                     //adjustment is only made each step (not each collision), so only clear outside the while loop
                     entitiesInGrid[j].collisionData.adjustment = 0;
+
+                    //TODO don't copy each frame!
+                    entitiesInGrid[j].collisionData.cachedAdditionalCollision = entity.AdditionalCollisionList.ToArray();
+
+                    //clear results
+                    foreach (var ac in entitiesInGrid[j].collisionData.cachedAdditionalCollision)
+                    {
+                        ac.Result = false;
+                    }
                 }
             }
 
@@ -737,12 +780,54 @@ namespace Sandbox.Physics
                 var entitiesInTheGrid = grids[collision.GridId].entities;
                 var lastTimeOfEntity = entitiesInTheGrid[collision.EntityId].collisionData.currentTime;
 
+                var oldPos = entitiesInTheGrid[collision.EntityId].collisionData.nextMove.pos;
+                var offsetPos = entitiesInTheGrid[collision.EntityId].collisionData.nextMove.v *
+                    (collision.Value - lastTimeOfEntity) * this.collision_time;
+
+                //before applying movement to this entity, we check for additional collision
+                {
+                    foreach (var ac in entitiesInTheGrid[collision.EntityId].collisionData.cachedAdditionalCollision)
+                    {
+                        switch (ac.Type)
+                        {
+                            case AdditionalCollisionType.StaticCollision:
+                                {
+                                    //test
+                                    if (entitiesInTheGrid[collision.EntityId].collisionData.entityRange > 1)
+                                    {
+                                        throw new Exception();
+                                    }
+                                    else
+                                    {
+                                        Box theBox = ac.Box;
+                                        theBox.center += oldPos;
+
+                                        foreach (var adjacentIndex in grids[collision.GridId].adjacents)
+                                        {
+                                            int layerIndex = (int)Math.Floor(oldPos.Z / LayerSize);
+                                            int layerBegin = layerIndex > 0 ? layerIndex - 1 : 0;
+                                            int layerEnd = layerIndex + 1;
+                                            if (layerEnd >= grids[adjacentIndex].staticEntity.CollisionSegments.Length)
+                                            {
+                                                layerEnd = grids[adjacentIndex].staticEntity.CollisionSegments.Length - 1;
+                                            }
+                                            if (TestAdditionalBoxWithStatic(theBox, offsetPos, collision.GridId, layerBegin, layerEnd))
+                                            {
+                                                ac.Result = true;
+                                                break; //no more tests
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                        }
+                    }
+                }
+
                 //time
                 entitiesInTheGrid[collision.EntityId].collisionData.currentTime = collision.Value;
                 //pos
-                entitiesInTheGrid[collision.EntityId].collisionData.nextMove.pos +=
-                    entitiesInTheGrid[collision.EntityId].collisionData.nextMove.v * 
-                    (collision.Value - lastTimeOfEntity) * this.collision_time;
+                entitiesInTheGrid[collision.EntityId].collisionData.nextMove.pos = oldPos + offsetPos;
                 //velocity
                 entitiesInTheGrid[collision.EntityId].collisionData.nextMove.v *=
                     entitiesInTheGrid[collision.EntityId].collisionData.velocityUpdateFactor;
@@ -753,6 +838,7 @@ namespace Sandbox.Physics
                 //check for secondary collision
                 {
                     TestEntityWithStatic(collision.GridId, collision.EntityId);
+                    //TODO entity-entity collision
                 }
 
             } //iterate through each collision

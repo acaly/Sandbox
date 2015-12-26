@@ -22,6 +22,8 @@ namespace Sandbox.GameScene
             this.MaxSize = 1;
             this.Acceloration = new Vector3(0, 0, -4);
             this.eye_offset = new Vector3(0.0f, 0.0f, 1.45f);
+
+            InitStairTest();
         }
 
         private Vector3 CalcOffset()
@@ -100,6 +102,67 @@ namespace Sandbox.GameScene
             if (keys[Keys.Space])
             {
                 Velocity.Z += 1;
+            }
+
+            StepStairTest();
+        }
+
+        private AdditionalCollision existTest, nearEmptyTest, upperEmptyTest;
+
+        private void InitStairTest()
+        {
+            float maxHeight = 0.5f; //ratio to halfsize
+
+            existTest = new AdditionalCollision()
+            {
+                Type = AdditionalCollisionType.StaticCollision,
+                Box = new Box
+                {
+                    center = new Vector3(0, 0, this.Collision.halfSize.Z * (maxHeight / 2 - 1.0f)),
+                    halfSize = new Vector3(this.Collision.halfSize.X, this.Collision.halfSize.Y, this.Collision.halfSize.Z * maxHeight / 2),
+                },
+            };
+            nearEmptyTest = new AdditionalCollision()
+            {
+                Type = AdditionalCollisionType.StaticCollision,
+                Box = new Box
+                {
+                    center = new Vector3(0, 0, this.Collision.halfSize.Z * (maxHeight / 2 - 1.0f)),
+                    halfSize = new Vector3(this.Collision.halfSize.X, this.Collision.halfSize.Y, this.Collision.halfSize.Z * maxHeight / 2),
+                },
+            };
+            float emptyHeight = 2.0f - maxHeight;
+            upperEmptyTest = new AdditionalCollision()
+            {
+                Type = AdditionalCollisionType.StaticCollision,
+                Box = new Box
+                {
+                    center = new Vector3(0, 0, this.Collision.halfSize.Z * (1.0f - emptyHeight / 2)),
+                    halfSize = new Vector3(this.Collision.halfSize.X, this.Collision.halfSize.Y, this.Collision.halfSize.Z * emptyHeight / 2),
+                },
+            };
+
+            this.AdditionalCollisionList.Add(existTest);
+            this.AdditionalCollisionList.Add(nearEmptyTest);
+            this.AdditionalCollisionList.Add(upperEmptyTest);
+        }
+
+        private void StepStairTest()
+        {
+            float offsetRatioMax = 0.5f, offsetRatioMin = 0.2f;
+            Vector3 offsetMax = offsetRatioMax * new Vector3(Velocity.X, Velocity.Y, 0),
+                offsetMin = offsetRatioMin * new Vector3(Velocity.X, Velocity.Y, 0);
+            existTest.Box.center.X = offsetMax.X;
+            existTest.Box.center.Y = offsetMax.Y;
+            nearEmptyTest.Box.center.X = offsetMin.X;
+            nearEmptyTest.Box.center.Y = offsetMin.Y;
+            upperEmptyTest.Box.center.X = offsetMax.X;
+            upperEmptyTest.Box.center.Y = offsetMax.Y;
+
+            if (existTest.Result && !nearEmptyTest.Result && !upperEmptyTest.Result)
+            {
+                if (this.Velocity.Z < 1.5f)
+                    this.Velocity.Z += 5.5f;
             }
         }
     }

@@ -23,6 +23,7 @@ namespace Sandbox.Physics
 
         public Box Collision;
 
+        public List<AdditionalCollision> AdditionalCollisionList = new List<AdditionalCollision>();
         //---------------------
         //---------------------
 

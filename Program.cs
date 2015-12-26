@@ -113,7 +113,7 @@ namespace Sandbox
                 rm.ImmediateContext.SetRenderData(rdm.renderData);
                 RenderLoopHelper.Run(rm, false, delegate(RenderContext frame)
                 {
-                    camera.Step();
+                    camera.Step(); //can't be paralleled with physics
 
                     //physicsStartEvent.Set();
                     theWorld.StepPhysics(1.0f / 60);
@@ -124,7 +124,7 @@ namespace Sandbox
 
                     frame.Draw(rdm.renderData);
 
-                    frame.Present(false);
+                    frame.Present(true);
 
                     //physicsFinishEvent.WaitOne();
                 });

@@ -76,6 +76,7 @@
     <Compile Include="Graphics\RenderManager.cs" />
     <Compile Include="Graphics\Shader.cs" />
     <Compile Include="MultiCube.cs" />
+    <Compile Include="Physics\AdditionalCollision.cs" />
     <Compile Include="Physics\Box.cs" />
     <Compile Include="Physics\CollisionQueue.cs" />
     <Compile Include="Physics\Entity.cs" />
