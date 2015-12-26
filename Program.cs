@@ -1,5 +1,6 @@
 ﻿using Sandbox.GameScene;
 using Sandbox.Graphics;
+using Sandbox.Terrain;
 using SharpDX;
 using SharpDX.D3DCompiler;
 using SharpDX.Direct3D;
@@ -48,27 +49,13 @@ namespace Sandbox
                 RenderDataManager rdm = new RenderDataManager(theWorld);
 
                 {
-                    byte[] blockdata;
-                    using (FileStream fs = File.OpenRead(@"blocks.bin"))
-                    {
-                        blockdata = new byte[fs.Length];
-                        fs.Read(blockdata, 0, blockdata.Length);
-                    }
-                    int blockdataindex = 0;
-                    for (int i = -50; i <= 50; ++i)
-                    {
-                        for (int j = -50; j < 50; ++j)
-                        {
-                            for (int k = -50; k < 50; ++k)
-                            {
-                                if (blockdata[blockdataindex++] != 0)
-                                {
-                                    theWorld.SetBlock(i, k, j + 55, new BlockData { BlockId = 1 });
-                                }
-                            }
-                        }
-                    }
+                    NatsuTerrain.CreateWorld(theWorld, "blocks.bin", 101, 100, 100, 5);
                 }
+                //{
+                //    AscTerrain terr = new AscTerrain(@"blocks_asc.asc", 1000, 1000);
+                //    terr.Resample(4);
+                //    terr.CreateWorld(theWorld, 000, 000, 250, 250);
+                //}
                 //for (int x = -4; x <= 4; ++x)
                 //{
                 //    for (int y = -4; y <= 4; ++y)
@@ -80,10 +67,6 @@ namespace Sandbox
                 //        }
                 //    }
                 //}
-                //theWorld.SetBlock(0, 0, 56, new BlockData { BlockId = 1 });
-                //theWorld.SetBlock(1, 0, 56, new BlockData { BlockId = 1 });
-                //theWorld.SetBlock(1, 0, 57, new BlockData { BlockId = 1 });
-                //theWorld.SetBlock(1, 1, 57, new BlockData { BlockId = 1 });
 
 
                 var shaderFace = Shader<VertexConstData>.CreateFromString(rm, BlockFaceShader.Value);
@@ -107,26 +90,27 @@ namespace Sandbox
                 camera.SetForm(rm.Form);
                 theWorld.AddEntity(camera);
 
-                var proj = Matrix.PerspectiveFovLH((float)Math.PI / 4.0f, 800.0f / 600.0f, 0.1f, 100.0f);
+                var proj = Matrix.PerspectiveFovLH((float)Math.PI / 4.0f, 800.0f / 600.0f, 0.1f, 1000.0f);
 
                 rm.ImmediateContext.ApplyShader(shaderFace);
 
                 EventWaitHandle physicsStartEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
                 EventWaitHandle physicsFinishEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
 
-                //Thread physicsThread = new Thread(new ThreadStart(delegate
-                //{
-                //    while (true)
-                //    {
-                //        physicsStartEvent.WaitOne();
-                //        theWorld.StepPhysics(1.0f / 60);
-                //        physicsFinishEvent.Set();
-                //    }
-                //}));
+                Thread physicsThread = new Thread(new ThreadStart(delegate
+                {
+                    while (true)
+                    {
+                        physicsStartEvent.WaitOne();
+                        theWorld.StepPhysics(1.0f / 60);
+                        physicsFinishEvent.Set();
+                    }
+                }));
                 //physicsThread.Start();
                 
-                GC.Collect();
+                //GC.Collect();
 
+                rm.ImmediateContext.SetRenderData(rdm.renderData);
                 RenderLoopHelper.Run(rm, false, delegate(RenderContext frame)
                 {
                     camera.Step();
@@ -138,13 +122,13 @@ namespace Sandbox
                     shaderFace.buffer.transform.Transpose();
                     frame.UpdateShaderConstant(shaderFace);
 
-                    rm.ImmediateContext.SetRenderData(rdm.renderData);
                     frame.Draw(rdm.renderData);
 
                     frame.Present(false);
 
                     //physicsFinishEvent.WaitOne();
                 });
+                //physicsThread.Abort();
             }
         }
     }

@@ -30,6 +30,8 @@ namespace Sandbox.GameScene
             Vector4 x = new Vector4(0, 1, 0, 0);
             offset = Vector4.Transform(offset, Matrix.RotationZ(yaw));
             x = Vector4.Transform(x, Matrix.RotationZ(yaw));
+            pitch = Math.Min((float)Math.PI / 2.001f, pitch);
+            pitch = Math.Max((float)Math.PI / -2.001f, pitch);
             offset = Vector4.Transform(offset, Matrix.RotationAxis(new Vector3(x.X, x.Y, x.Z), -pitch));
             return new Vector3(offset.X, offset.Y, offset.Z);
         }

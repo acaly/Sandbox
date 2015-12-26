@@ -30,7 +30,7 @@ namespace Sandbox.GameScene
         {
             get
             {
-                return 128;
+                return 256;
             }
         }
 
@@ -52,6 +52,7 @@ namespace Sandbox.GameScene
         public BlockData GetBlock(int x, int y, int z)
         {
             if (z < 0) return new BlockData();
+            if (z >= ChunkHeight) return new BlockData();
 
             var chunkCoord = new WorldCoord
             {
