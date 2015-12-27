@@ -18,6 +18,7 @@ namespace Sandbox.Physics
         public int Group;
         public Box Box;
 
+        //entity is responsible to clear this result
         public bool Result;
 
         public virtual void OnCollide() { }

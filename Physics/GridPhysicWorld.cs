@@ -77,6 +77,7 @@ namespace Sandbox.Physics
             public GridStaticEntity staticEntity;
             public int[] adjacents; //also include itself
             public Vector3 basePosition;
+            public bool entityDataCacheDirty;
         }
 
         /*
@@ -187,6 +188,9 @@ namespace Sandbox.Physics
 
             //update size
             grids[grid].entityCount -= 1;
+
+            //set dirty flag on grid (we have exchaged two entity)
+            grids[grid].entityDataCacheDirty = true;
         }
 
         private void AddEntityIntoGrid(int grid, Entity entity)
@@ -217,6 +221,9 @@ namespace Sandbox.Physics
             {
                 grids[grid].max_entity_size = maxSizeOfEntity;
             }
+
+            //set dirty flag on grid
+            grids[grid].entityDataCacheDirty = true;
         }
 
         private void RecalcGridRanges()
@@ -440,10 +447,16 @@ namespace Sandbox.Physics
                 Box gridBox = gridBoxes[boxId];
                 gridBox.center += gridPos;
 
-                Vector3 dist = box.center - gridBox.center;
-                Vector3 range = gridBox.halfSize + box.halfSize;
+                //Vector3 dist = box.center - gridBox.center;
+                //Vector3 range = gridBox.halfSize + box.halfSize;
                 
-                if (TestDistWithMargin(ref dist, ref range, 0.0f))
+                //if (TestDistWithMargin(ref dist, ref range, 0.0f))
+                if (box.center.X < gridBox.center.X + box.halfSize.X + gridBox.halfSize.X &&
+                    box.center.X > gridBox.center.X - box.halfSize.X - gridBox.halfSize.X &&
+                    box.center.Y < gridBox.center.Y + box.halfSize.Y + gridBox.halfSize.Y &&
+                    box.center.Y > gridBox.center.Y - box.halfSize.Y - gridBox.halfSize.Y &&
+                    box.center.Z < gridBox.center.Z + box.halfSize.Z + gridBox.halfSize.Z &&
+                    box.center.Z > gridBox.center.Z - box.halfSize.Z - gridBox.halfSize.Z)
                 {
                     return true;
                 }
@@ -640,6 +653,14 @@ namespace Sandbox.Physics
             //no entity-entity collision
         }
 
+        private Vector3 CalculateVelocity(Vector3 v, Vector3 a, float time)
+        {
+            var friction = -4.0f; //TODO allow different value for each entity
+            var frictionVec = v * new Vector3(1, 1, 0) * friction * time +
+                v * new Vector3(0, 0, 1) * friction * time;
+            return v + frictionVec + a * time;
+        }
+
         public void Step(float time)
         {
             this.collision_time = time;
@@ -652,30 +673,30 @@ namespace Sandbox.Physics
                 for (int j = 0; j < grids[i].entityCount; ++j)
                 {
                     var entity = entitiesInGrid[j].entity;
-                    
-                    //this is used to check if a collision exist (also needed to update)
-                    entitiesInGrid[j].collisionData.nextCollision = 1.0f;
 
-                    var friction = -4.0f; //TODO allow different value for each entity
-                    var frictionVec = entity.Velocity * new Vector3(1, 1, 0) * friction * time +
-                        entity.Velocity * new Vector3(0, 0, 1) * friction * time;
-                    var v = entity.Velocity + frictionVec + entity.Acceloration * time;
+                    //calculate nextMove
+
+                    //var friction = -4.0f; //TODO allow different value for each entity
+                    //var frictionVec = entity.Velocity * new Vector3(1, 1, 0) * friction * time +
+                    //    entity.Velocity * new Vector3(0, 0, 1) * friction * time;
+                    //var v = entity.Velocity + frictionVec + entity.Acceloration * time;
+                    var v = CalculateVelocity(entity.Velocity, entity.Acceloration, time);
 
                     entitiesInGrid[j].collisionData.nextMove.pos = entity.Position;
                     entitiesInGrid[j].collisionData.nextMove.v = v;
 
-                    entitiesInGrid[j].collisionData.currentTime = 0.0f;
-
-                    //adjustment is only made each step (not each collision), so only clear outside the while loop
-                    entitiesInGrid[j].collisionData.adjustment = 0;
-
-                    //TODO don't copy each frame!
-                    entitiesInGrid[j].collisionData.cachedAdditionalCollision = entity.AdditionalCollisionList.ToArray();
-
-                    //clear results
-                    foreach (var ac in entitiesInGrid[j].collisionData.cachedAdditionalCollision)
+                    //others (which do not change every frame, and have been reset before last frame finished)
+                    if (grids[i].entityDataCacheDirty)
                     {
-                        ac.Result = false;
+                        grids[i].entityDataCacheDirty = false;
+
+                        entitiesInGrid[j].collisionData.nextCollision = 1.0f;
+                        entitiesInGrid[j].collisionData.currentTime = 0.0f;
+
+                        //adjustment is only made each step (not each collision), so only clear outside the while loop
+                        entitiesInGrid[j].collisionData.adjustment = 0;
+
+                        entitiesInGrid[j].collisionData.cachedAdditionalCollision = entity.AdditionalCollisionList.ToArray();
                     }
                 }
             }
@@ -846,15 +867,17 @@ namespace Sandbox.Physics
             } //iterate through each collision
 
             entityGridUpdates.Clear();
-            //update pos and v to entity
+            //update pos and v to entity, also restore entity cached information
             for (int gridId = 0; gridId < grids.Length; ++gridId)
             {
                 var entitiesInGrid = grids[gridId].entities;
                 for (int entityId = 0; entityId < grids[gridId].entityCount; ++entityId)
                 {
+                    //set pos and v back to entity
                     var v = entitiesInGrid[entityId].collisionData.nextMove.v;
                     var pos = entitiesInGrid[entityId].collisionData.nextMove.pos;
-                    entitiesInGrid[entityId].entity.Velocity = v;
+                    var entity = entitiesInGrid[entityId].entity;
+                    entity.Velocity = v;
                     var newPos = pos + v * (1.0f - entitiesInGrid[entityId].collisionData.currentTime) * this.collision_time;
 
                     if (!CheckEntityPositionInGrid(newPos, gridId))
@@ -863,11 +886,17 @@ namespace Sandbox.Physics
                         entityGridUpdates.Add(new UpdateEntityGridInfo
                         {
                             oldGrid = gridId,
-                            entity = entitiesInGrid[entityId].entity,
+                            entity = entity,
                             newGrid = GetGridFromEntityPosition(newPos),
                         });
                     }
-                    entitiesInGrid[entityId].entity.Position = newPos;
+                    entity.Position = newPos;
+
+                    //restore entity cached information (these must be reset each frame)
+                    entitiesInGrid[entityId].collisionData.nextCollision = 1.0f;
+                    entitiesInGrid[entityId].collisionData.currentTime = 0.0f;
+                    entitiesInGrid[entityId].collisionData.adjustment = 0;
+                    //note that we don't update nextMove with velocity and accelorator, which could change next frame
                 }
             }
 

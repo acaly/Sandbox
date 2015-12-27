@@ -124,7 +124,7 @@ namespace Sandbox
 
                     frame.Draw(rdm.renderData);
 
-                    frame.Present(true);
+                    frame.Present(false);
 
                     //physicsFinishEvent.WaitOne();
                 });

@@ -185,6 +185,9 @@ namespace Sandbox.GameScene
                     this.Velocity.Z = 9.0f;
                 }
             }
+            existTest.Result = false;
+            nearEmptyTest.Result = false;
+            upperEmptyTest.Result = false;
         }
     }
 }
