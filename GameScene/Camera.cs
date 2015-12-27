@@ -20,7 +20,7 @@ namespace Sandbox.GameScene
             this.Position = pos;
             this.Collision = new Box { center = new Vector3(), halfSize = new Vector3(1.0f, 1.0f, 2.0f) };
             this.MaxSize = 1;
-            this.Acceloration = new Vector3(0, 0, -4);
+            this.Acceloration = new Vector3(0, 0, -30);
             this.eye_offset = new Vector3(0.0f, 0.0f, 1.45f);
 
             InitStairTest();
@@ -45,7 +45,7 @@ namespace Sandbox.GameScene
 
         public Vector3 MoveHorizontal(Vector4 b)
         {
-            Vector4 move = b * 0.1f;
+            Vector4 move = b;
             move = Vector4.Transform(move, Matrix.RotationZ(yaw));
             return new Vector3(move.X, move.Y, move.Z);
         }
@@ -83,13 +83,13 @@ namespace Sandbox.GameScene
             if (keys[Keys.A]) movedir.Y += 1;
             if (keys[Keys.D]) movedir.Y -= 1;
             movedir.Normalize();
-            acc = MoveHorizontal(movedir) * 70.0f;
+            acc = MoveHorizontal(movedir) * 30.0f;
             acc.Z = Acceloration.Z;
 
-            if (keys[Keys.Up]) pitch -= 0.02f;
-            if (keys[Keys.Down]) pitch += 0.02f;
-            if (keys[Keys.Left]) yaw -= 0.02f;
-            if (keys[Keys.Right]) yaw += 0.02f;
+            if (keys[Keys.Up]) pitch -= 0.03f;
+            if (keys[Keys.Down]) pitch += 0.03f;
+            if (keys[Keys.Left]) yaw -= 0.03f;
+            if (keys[Keys.Right]) yaw += 0.03f;
             Acceloration = acc;
 
             if (acc.X == 0 && acc.Y == 0)
@@ -112,6 +112,7 @@ namespace Sandbox.GameScene
         private void InitStairTest()
         {
             float maxHeight = 0.5f; //ratio to halfsize
+            float emptyHeight = 2.0f - maxHeight;
 
             existTest = new AdditionalCollision()
             {
@@ -131,7 +132,6 @@ namespace Sandbox.GameScene
                     halfSize = new Vector3(this.Collision.halfSize.X, this.Collision.halfSize.Y, this.Collision.halfSize.Z * maxHeight / 2),
                 },
             };
-            float emptyHeight = 2.0f - maxHeight;
             upperEmptyTest = new AdditionalCollision()
             {
                 Type = AdditionalCollisionType.StaticCollision,
@@ -147,11 +147,18 @@ namespace Sandbox.GameScene
             this.AdditionalCollisionList.Add(upperEmptyTest);
         }
 
+        private int jumpCount = 0;
         private void StepStairTest()
         {
-            float offsetRatioMax = 0.5f, offsetRatioMin = 0.2f;
-            Vector3 offsetMax = offsetRatioMax * new Vector3(Velocity.X, Velocity.Y, 0),
-                offsetMin = offsetRatioMin * new Vector3(Velocity.X, Velocity.Y, 0);
+            if (this.Acceloration.X != 0)
+            {
+
+            }
+
+            float offsetRatioMax = 0.5f, offsetRatioMin = 0.3f;
+
+            Vector3 offsetMax = offsetRatioMax * new Vector3(Acceloration.X, Acceloration.Y, 0) / 70.0f * 2.0f,
+                offsetMin = offsetRatioMin * new Vector3(Acceloration.X, Acceloration.Y, 0) / 70.0f * 2.0f;
             existTest.Box.center.X = offsetMax.X;
             existTest.Box.center.Y = offsetMax.Y;
             nearEmptyTest.Box.center.X = offsetMin.X;
@@ -159,10 +166,24 @@ namespace Sandbox.GameScene
             upperEmptyTest.Box.center.X = offsetMax.X;
             upperEmptyTest.Box.center.Y = offsetMax.Y;
 
-            if (existTest.Result && !nearEmptyTest.Result && !upperEmptyTest.Result)
+            if (jumpCount == 0)
             {
-                if (this.Velocity.Z < 1.5f)
-                    this.Velocity.Z += 5.5f;
+                if (existTest.Result && !upperEmptyTest.Result)
+                {
+                    jumpCount = 2;
+                }
+                else if (existTest.Result)
+                {
+
+                }
+            }
+            else
+            {
+                if (nearEmptyTest.Result || jumpCount != 2)
+                {
+                    --jumpCount;
+                    this.Velocity.Z = 9.0f;
+                }
             }
         }
     }

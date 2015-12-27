@@ -22,7 +22,7 @@ namespace Sandbox.GameScene
         {
             get
             {
-                return 8;
+                return 16;
             }
         }
 
@@ -38,7 +38,7 @@ namespace Sandbox.GameScene
         {
             get
             {
-                return 4;
+                return 8;
             }
         }
 

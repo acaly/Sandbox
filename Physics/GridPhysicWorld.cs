@@ -656,8 +656,10 @@ namespace Sandbox.Physics
                     //this is used to check if a collision exist (also needed to update)
                     entitiesInGrid[j].collisionData.nextCollision = 1.0f;
 
-                    var friction = -1.0f; //TODO allow different value for each entity
-                    var v = entity.Velocity + entity.Velocity * new Vector3(1, 1, 0) * friction * time + entity.Acceloration * time;
+                    var friction = -4.0f; //TODO allow different value for each entity
+                    var frictionVec = entity.Velocity * new Vector3(1, 1, 0) * friction * time +
+                        entity.Velocity * new Vector3(0, 0, 1) * friction * time;
+                    var v = entity.Velocity + frictionVec + entity.Acceloration * time;
 
                     entitiesInGrid[j].collisionData.nextMove.pos = entity.Position;
                     entitiesInGrid[j].collisionData.nextMove.v = v;
@@ -811,7 +813,7 @@ namespace Sandbox.Physics
                                             {
                                                 layerEnd = grids[adjacentIndex].staticEntity.CollisionSegments.Length - 1;
                                             }
-                                            if (TestAdditionalBoxWithStatic(theBox, offsetPos, collision.GridId, layerBegin, layerEnd))
+                                            if (TestAdditionalBoxWithStatic(theBox, offsetPos, adjacentIndex, layerBegin, layerEnd))
                                             {
                                                 ac.Result = true;
                                                 break; //no more tests

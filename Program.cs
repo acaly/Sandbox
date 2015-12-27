@@ -29,7 +29,6 @@ other: 11.4
 
 namespace Sandbox
 {
-
     public struct VertexConstData
     {
         public Matrix transform;
@@ -37,6 +36,8 @@ namespace Sandbox
     
     static class Program
     {
+        public static Form MainForm;
+
         [STAThread]
         static void Main()
         {
@@ -48,23 +49,21 @@ namespace Sandbox
                 GameScene.Camera camera = new GameScene.Camera(new Vector3(0, 0, 70));
                 RenderDataManager rdm = new RenderDataManager(theWorld);
 
-                {
+                MainForm = rm.Form;
+
+                //{
                     NatsuTerrain.CreateWorld(theWorld, "blocks.bin", 101, 100, 100, 5);
-                }
+                //}
                 //{
                 //    AscTerrain terr = new AscTerrain(@"blocks_asc.asc", 1000, 1000);
                 //    terr.Resample(4);
                 //    terr.CreateWorld(theWorld, 000, 000, 250, 250);
                 //}
-                //for (int x = -4; x <= 4; ++x)
+                //for (int x = -20; x <= 20; ++x)
                 //{
-                //    for (int y = -4; y <= 4; ++y)
+                //    for (int y = -20; y <= 20; ++y)
                 //    {
-                //        theWorld.SetBlock(x, y, 55, new BlockData { BlockId = 1 });
-                //        if (x == -4 || x == 4 || y == -4 || y == 4)
-                //        {
-                //            theWorld.SetBlock(x, y, 56, new BlockData { BlockId = 1 });
-                //        }
+                //        theWorld.SetBlock(x, y, 35 + x, new BlockData { BlockId = 1 });
                 //    }
                 //}
 
