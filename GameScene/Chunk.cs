@@ -30,29 +30,107 @@ namespace Sandbox.GameScene
         public Chunk() { }
 
         private World world;
-        private BlockData[] blocks;
-        private bool[] dirty;
+
         private int w, h;
         private Vector4 basePosition;
         private WorldCoord baseCoord;
 
+        //blocks array no longer store the block data in consequence
+        //use GetBlock/SetBlock to access it.
+        //store data in layer
+        private BlockData[] blocks;
+        //offset in blocks array of a layer
+        private int[] layerOffset;
+        //free offsets
+        private int[] freeLayerOffset;
+        private int layerCapacity;
+        //number of non-empty layers + 1
+        private int layerCount;
+
+
+        // block access part
+
         public BlockData GetBlock(int x, int y, int z)
         {
-            return blocks[x + y * w + z * w * w];
+            //old method
+            //return blocks[x + y * w + z * w * w];
+            //new method
+            return blocks[x + y * w + GetLayerOffset(z)];
         }
 
         public void SetBlock(int x, int y, int z, BlockData b)
         {
-            var blockIndex = x + y * w + z * w * w;
-
-            blocks[blockIndex] = b;
-            dirty[blockIndex] = true;
+            //old method
+            //blocks[x + y * w + z * w * w] = b;
+            //new method
+            var index = x + y * w + GetOrCreateLayerOffset(z);
+            blocks[index] = b;
         }
+
+        private int GetLayerOffset(int z)
+        {
+            return layerOffset[z];
+        }
+
+        private int GetOrCreateLayerOffset(int z)
+        {
+            var ret = layerOffset[z];
+            if (ret == 0)
+            {
+                if (layerCount >= layerCapacity)
+                {
+                    //create new array
+                    var newLayerCapacity = layerCapacity * 2;
+                    var newBlockArray = new BlockData[newLayerCapacity * w * w];
+                    Array.Copy(blocks, newBlockArray, blocks.Length);
+                    //push new free offsets
+                    for (int i = 0; i < newLayerCapacity - layerCapacity; ++i)
+                    {
+                        var theOffset = (layerCapacity + i) * w * w;
+                        freeLayerOffset[i] = theOffset;
+                        //clear
+                        for (int j = 0; j < w * w; ++j)
+                        {
+                            newBlockArray[theOffset + j] = new BlockData();
+                        }
+                    }
+                    //update fields
+                    blocks = newBlockArray;
+                    layerCapacity = newLayerCapacity;
+                }
+                ret = freeLayerOffset[layerCapacity - layerCount - 1];
+                layerOffset[z] = ret;
+                layerCount++;
+            }
+            return ret;
+        }
+
+        private void ClearLayer(int offset)
+        {
+        }
+
+        private void InitBlocksArray()
+        {
+            //old method
+            //blocks = new BlockData[h * w * w];
+
+            //new method
+            layerCapacity = 10;
+            layerCount = 1; //reserve 0 for empty layer
+            blocks = new BlockData[layerCapacity * w * w];
+            layerOffset = new int[h];
+            freeLayerOffset = new int[h];
+            for (int i = 0; i < layerCapacity - 1; ++i)
+            {
+                freeLayerOffset[i] = (i + 1) * w * w;
+            }
+        }
+
+        //end of block access part
 
         private void AppendBlockCollision(int x, int y, int z)
         {
-            var blockIndex = x + y * w + z * w * w;
-            bool hasCollision = blocks[blockIndex].HasCollision();
+            bool hasCollision = GetBlock(x, y, z).HasCollision();
 
             if (hasCollision)
             {
@@ -83,10 +161,8 @@ namespace Sandbox.GameScene
             this.world = init;
             this.w = init.ChunkWidth;
             this.h = init.ChunkHeight;
-            int blockSize = h * w * w;
-            
-            blocks = new BlockData[blockSize];
-            dirty = new bool[blockSize];
+
+            InitBlocksArray();
             basePosition = new Vector4(pos.x, pos.y, pos.z, 0);
             baseCoord = pos;
 
@@ -110,7 +186,7 @@ namespace Sandbox.GameScene
         {
             if (x >= 0 && x < w && y >= 0 && y < w && z >= 0 && z < h)
             {
-                return blocks[x + y * w + z * w * w];
+                return GetBlock(x, y, z);
             }
             return world.GetBlock(x + baseCoord.x, y + baseCoord.y, z + baseCoord.z);
         }
@@ -188,8 +264,9 @@ namespace Sandbox.GameScene
             return new Vector4();
         }
 
-        private void AppendBlockRenderData(int x, int y, int z, BlockData data)
+        private void AppendBlockRenderData(int x, int y, int z)
         {
+            BlockData data = GetBlock(x, y, z);
             if (data.BlockId == 0) return;
 
             if (!IsNormalCubeBeside(x, y, z, 0, 0, -1)) renderList.Add(new BlockRenderData
@@ -247,7 +324,6 @@ namespace Sandbox.GameScene
             collisionList = world.collisionBuffer;
             collisionList.Clear();
             renderList.Clear();
-            int gridId = 0;
 
             int nextLayerId = 1;
             int nextLayerStartZ = world.ChunkLayerHeight;
@@ -266,9 +342,7 @@ namespace Sandbox.GameScene
                     for (int gridX = 0; gridX < w; ++gridX)
                     {
                         AppendBlockCollision(gridX, gridY, gridZ);
-                        AppendBlockRenderData(gridX, gridY, gridZ, blocks[gridId]);
-
-                        ++gridId;
+                        AppendBlockRenderData(gridX, gridY, gridZ);
                     }
                 }
             }
