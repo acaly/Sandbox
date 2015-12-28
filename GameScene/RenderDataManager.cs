@@ -48,37 +48,103 @@ namespace Sandbox.GameScene
         }
     }
 
-    class RenderDataManager
+    class RenderDataManager : IDisposable
     {
         private World world;
-        public RenderData<BlockRenderData> renderData
+
+        private List<RenderData<BlockRenderData>> renderDataList = new List<RenderData<BlockRenderData>>();
+        private RenderBuffer myRenderBuffer;
+
+        private const int RenderDataMaxLength = 16384;
+
+        private BlockRenderData[] arrayBuffer;
+        private int lastRenderDataLength;
+
+        private Action<RenderData<BlockRenderData>> setupRenderData;
+
+        private class RenderBuffer : IRenderBuffer<BlockRenderData>
         {
-            get;
-            private set;
+            private RenderDataManager manager;
+
+
+            public RenderBuffer(RenderDataManager manager)
+            {
+                this.manager = manager;
+            }
+
+            public void Append(BlockRenderData val)
+            {
+                if (manager.lastRenderDataLength >= RenderDataMaxLength)
+                {
+                    //create last renderdata
+                    var rd = RenderData<BlockRenderData>.Create(manager.world.renderManager,
+                        SharpDX.Direct3D.PrimitiveTopology.PointList, manager.arrayBuffer);
+                    if (manager.setupRenderData != null)
+                    {
+                        manager.setupRenderData(rd);
+                    }
+                    manager.renderDataList.Add(rd);
+                    manager.lastRenderDataLength = 0;
+                }
+                manager.arrayBuffer[manager.lastRenderDataLength++] = val;
+            }
         }
-        private ArrayBuffer<BlockRenderData> renderBuffer = new ArrayBuffer<BlockRenderData>();
 
         public RenderDataManager(World world)
         {
             this.world = world;
-            this.renderData = RenderData<BlockRenderData>.Create(world.renderManager, 
-                SharpDX.Direct3D.PrimitiveTopology.PointList, new BlockRenderData[0]);
+            this.arrayBuffer = new BlockRenderData[RenderDataMaxLength];
+            this.myRenderBuffer = new RenderBuffer(this);
+        }
+
+        public void SetLayoutFromShader<T>(Shader<T> shader) where T : struct
+        {
+            setupRenderData = delegate(RenderData<BlockRenderData> rd)
+            {
+                rd.SetLayoutFromShader(shader);
+            };
         }
 
         public void Flush()
         {
-            renderBuffer.Clear();
+            ClearAllRenderData();
+
             foreach (var chunk in world.chunkList)
             {
-                renderBuffer.AddRange(chunk.RenderDataList);
+                chunk.FlushRenderData(myRenderBuffer);
             }
-            if (renderData != null)
+            //create the last render data object
+            var rd = RenderData<BlockRenderData>.Create(world.renderManager, SharpDX.Direct3D.PrimitiveTopology.PointList,
+                arrayBuffer, lastRenderDataLength);
+            if (setupRenderData != null)
             {
-                renderData.Dispose();
+                setupRenderData(rd);
             }
-            renderData = RenderData<BlockRenderData>.Create(world.renderManager,
-                SharpDX.Direct3D.PrimitiveTopology.PointList,
-                renderBuffer.Data, renderBuffer.Count);
+            renderDataList.Add(rd);
+        }
+
+        private void ClearAllRenderData()
+        {
+            foreach (var rd in renderDataList)
+            {
+                rd.Dispose();
+            }
+            renderDataList.Clear();
+            lastRenderDataLength = 0;
+        }
+
+        public void Dispose()
+        {
+            ClearAllRenderData();
+        }
+
+        public void Render(RenderContext frame)
+        {
+            foreach (var rd in renderDataList)
+            {
+                frame.SetRenderData(rd);
+                frame.Draw(rd);
+            }
         }
     }
 }

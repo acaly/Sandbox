@@ -68,6 +68,8 @@ namespace Sandbox
                 //    }
                 //}
 
+                LightingManager lighting = new LightingManager(theWorld, 0, 0);
+                return;
 
                 var shaderFace = Shader<VertexConstData>.CreateFromString(rm, BlockFaceShader.Value);
                 shaderFace.CreateSamplerForPixelShader(0, new SamplerStateDescription
@@ -81,11 +83,11 @@ namespace Sandbox
 
                 foreach (var chunk in theWorld.chunkList)
                 {
-                    chunk.Flush();
+                    chunk.FlushCollision();
                 }
+                rdm.SetLayoutFromShader(shaderFace);
                 rdm.Flush();
-                rdm.renderData.SetLayoutFromShader(shaderFace); //TODO merge into world
-                rdm.renderData.SetResourceForPixelShader(0, aotexture.ResourceView);
+                shaderFace.SetResourceForPixelShader(0, aotexture.ResourceView);
 
                 camera.SetForm(rm.Form);
                 theWorld.AddEntity(camera);
@@ -110,7 +112,7 @@ namespace Sandbox
                 
                 //GC.Collect();
 
-                rm.ImmediateContext.SetRenderData(rdm.renderData);
+                //rm.ImmediateContext.SetRenderData(rdm.renderData);
                 RenderLoopHelper.Run(rm, false, delegate(RenderContext frame)
                 {
                     camera.Step(); //can't be paralleled with physics
@@ -122,7 +124,7 @@ namespace Sandbox
                     shaderFace.buffer.transform.Transpose();
                     frame.UpdateShaderConstant(shaderFace);
 
-                    frame.Draw(rdm.renderData);
+                    rdm.Render(frame);
 
                     frame.Present(false);
 

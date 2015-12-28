@@ -18,7 +18,7 @@ namespace Sandbox.GameScene
         //used by chunks to make their collision list
         public List<Box> collisionBuffer = new List<Box>();
 
-        public int ChunkWidth
+        public static int ChunkWidth
         {
             get
             {
@@ -26,7 +26,7 @@ namespace Sandbox.GameScene
             }
         }
 
-        public int ChunkHeight
+        public static int ChunkHeight
         {
             get
             {
@@ -34,7 +34,7 @@ namespace Sandbox.GameScene
             }
         }
 
-        public int ChunkLayerHeight
+        public static int ChunkLayerHeight
         {
             get
             {

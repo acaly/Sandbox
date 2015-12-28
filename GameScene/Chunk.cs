@@ -159,8 +159,8 @@ namespace Sandbox.GameScene
         public void Init(World init, WorldCoord pos)
         {
             this.world = init;
-            this.w = init.ChunkWidth;
-            this.h = init.ChunkHeight;
+            this.w = World.ChunkWidth;
+            this.h = World.ChunkHeight;
 
             InitBlocksArray();
             basePosition = new Vector4(pos.x, pos.y, pos.z, 0);
@@ -169,7 +169,7 @@ namespace Sandbox.GameScene
             base.CollisionArray = new Box[0];
             base.CollisionCount = 0;
             base.Position = new SharpDX.Vector3(pos.x, pos.y, pos.z);
-            base.CollisionSegments = new int[h / init.ChunkLayerHeight + 1];
+            base.CollisionSegments = new int[h / World.ChunkLayerHeight + 1];
 
             init.OnNewChunk(pos, this);
         }
@@ -179,7 +179,6 @@ namespace Sandbox.GameScene
             return this;
         }
 
-        private List<BlockRenderData> renderList = new List<BlockRenderData>();
         private List<Box> collisionList;
 
         private BlockData GetBlockDataAt(int x, int y, int z)
@@ -264,12 +263,12 @@ namespace Sandbox.GameScene
             return new Vector4();
         }
 
-        private void AppendBlockRenderData(int x, int y, int z)
+        private void AppendBlockRenderData(IRenderBuffer<BlockRenderData> buffer, int x, int y, int z)
         {
             BlockData data = GetBlock(x, y, z);
             if (data.BlockId == 0) return;
 
-            if (!IsNormalCubeBeside(x, y, z, 0, 0, -1)) renderList.Add(new BlockRenderData
+            if (!IsNormalCubeBeside(x, y, z, 0, 0, -1)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y + 0.0f, z - 0.5f, 1.0f),
                 col = new Vector4(1.0f, 0.0f, 0.0f, 1.0f),
@@ -277,7 +276,7 @@ namespace Sandbox.GameScene
                 dir_v = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 0),
             });
-            if (!IsNormalCubeBeside(x, y, z, 0, 0, 1)) renderList.Add(new BlockRenderData
+            if (!IsNormalCubeBeside(x, y, z, 0, 0, 1)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y + 0.0f, z + 0.5f, 1.0f),
                 col = new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
@@ -285,7 +284,7 @@ namespace Sandbox.GameScene
                 dir_v = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 1),
             });
-            if (!IsNormalCubeBeside(x, y, z, 0, 1, 0)) renderList.Add(new BlockRenderData
+            if (!IsNormalCubeBeside(x, y, z, 0, 1, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y + 0.5f, z + 0.0f, 1.0f),
                 col = new Vector4(0.0f, 0.0f, 1.0f, 1.0f),
@@ -293,7 +292,7 @@ namespace Sandbox.GameScene
                 dir_v = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 2),
             });
-            if (!IsNormalCubeBeside(x, y, z, 0, -1, 0)) renderList.Add(new BlockRenderData
+            if (!IsNormalCubeBeside(x, y, z, 0, -1, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y - 0.5f, z + 0.0f, 1.0f),
                 col = new Vector4(1.0f, 1.0f, 0.0f, 1.0f),
@@ -301,7 +300,7 @@ namespace Sandbox.GameScene
                 dir_v = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 3),
             });
-            if (!IsNormalCubeBeside(x, y, z, -1, 0, 0)) renderList.Add(new BlockRenderData
+            if (!IsNormalCubeBeside(x, y, z, -1, 0, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x - 0.5f, y + 0.0f, z + 0.0f, 1.0f),
                 col = new Vector4(1.0f, 0.0f, 1.0f, 1.0f),
@@ -309,7 +308,7 @@ namespace Sandbox.GameScene
                 dir_v = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 4),
             });
-            if (!IsNormalCubeBeside(x, y, z, 1, 0, 0)) renderList.Add(new BlockRenderData
+            if (!IsNormalCubeBeside(x, y, z, 1, 0, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.5f, y + 0.0f, z + 0.0f, 1.0f),
                 col = new Vector4(0.0f, 1.0f, 1.0f, 1.0f),
@@ -319,14 +318,13 @@ namespace Sandbox.GameScene
             });
         }
 
-        public void Flush()
+        public void FlushCollision()
         {
             collisionList = world.collisionBuffer;
             collisionList.Clear();
-            renderList.Clear();
 
             int nextLayerId = 1;
-            int nextLayerStartZ = world.ChunkLayerHeight;
+            int nextLayerStartZ = World.ChunkLayerHeight;
             base.CollisionSegments[0] = 0;
 
             for (int gridZ = 0; gridZ < h; ++gridZ)
@@ -334,7 +332,7 @@ namespace Sandbox.GameScene
                 if (gridZ >= nextLayerStartZ)
                 {
                     base.CollisionSegments[nextLayerId++] = collisionList.Count;
-                    nextLayerStartZ += world.ChunkLayerHeight;
+                    nextLayerStartZ += World.ChunkLayerHeight;
                 }
 
                 for (int gridY = 0; gridY < w; ++gridY)
@@ -342,7 +340,6 @@ namespace Sandbox.GameScene
                     for (int gridX = 0; gridX < w; ++gridX)
                     {
                         AppendBlockCollision(gridX, gridY, gridZ);
-                        AppendBlockRenderData(gridX, gridY, gridZ);
                     }
                 }
             }
@@ -352,11 +349,17 @@ namespace Sandbox.GameScene
             CollisionArray = collisionList.ToArray();
         }
 
-        public List<BlockRenderData> RenderDataList
+        public void FlushRenderData(IRenderBuffer<BlockRenderData> buffer)
         {
-            get
+            for (int gridZ = 0; gridZ < h; ++gridZ)
             {
-                return renderList;
+                for (int gridY = 0; gridY < w; ++gridY)
+                {
+                    for (int gridX = 0; gridX < w; ++gridX)
+                    {
+                        AppendBlockRenderData(buffer, gridX, gridY, gridZ);
+                    }
+                }
             }
         }
     }

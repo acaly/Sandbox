@@ -64,11 +64,13 @@
     <Compile Include="GameScene\Camera.cs" />
     <Compile Include="GameScene\Chunk.cs" />
     <Compile Include="GameScene\CoordDictionary.cs" />
+    <Compile Include="GameScene\LightingManager.cs" />
     <Compile Include="GameScene\World.cs" />
     <Compile Include="GameScene\WorldCoord.cs" />
     <Compile Include="Graphics\AmbientOcculsionTexture.cs" />
     <Compile Include="Graphics\BlockFaceShader.cs" />
     <Compile Include="Graphics\DefaultShader.cs" />
+    <Compile Include="Graphics\IRenderBuffer.cs" />
     <Compile Include="Graphics\RenderContext.cs" />
     <Compile Include="Graphics\RenderData.cs" />
     <Compile Include="GameScene\RenderDataManager.cs" />

@@ -10,6 +10,10 @@ namespace Sandbox.GameScene
     {
         public int BlockId;
 
+        //for temperary usage only
+        //currently used in: LightingManager
+        public int flags;
+
         public bool HasCollision()
         {
             return BlockId != 0;

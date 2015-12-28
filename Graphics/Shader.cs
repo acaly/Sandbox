@@ -27,6 +27,7 @@ namespace Sandbox.Graphics
         private Buffer constantBuffer;
 
         private List<SamplerState> samplers = new List<SamplerState>();
+        private List<ShaderResourceView> resources = new List<ShaderResourceView>();
 
         private Shader() { }
 
@@ -82,6 +83,10 @@ namespace Sandbox.Graphics
             {
                 if (samplers[i] != null) context.PixelShader.SetSampler(i, samplers[i]);
             }
+            for (int i = 0; i < resources.Count; ++i)
+            {
+                if (resources[i] != null) context.PixelShader.SetShaderResource(i, resources[i]);
+            }
         }
 
         public void UpdateConstantTable(DeviceContext context)
@@ -96,6 +101,15 @@ namespace Sandbox.Graphics
                 samplers.Add(null);
             }
             samplers[id] = new SamplerState(device, desc);
+        }
+
+        public void SetResourceForPixelShader(int slot, ShaderResourceView res)
+        {
+            while (resources.Count <= slot)
+            {
+                resources.Add(null);
+            }
+            resources[slot] = res;
         }
 
         public void Dispose()
