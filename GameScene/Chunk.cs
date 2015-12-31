@@ -67,6 +67,21 @@ namespace Sandbox.GameScene
             blocks[index] = b;
         }
 
+        public BlockData RawGetBlock(int index)
+        {
+            return blocks[index];
+        }
+
+        public void RawSetBlock(int index, BlockData b)
+        {
+            blocks[index] = b;
+        }
+
+        public int GetBlockIndex(int x, int y, int z)
+        {
+            return x + y * w + GetOrCreateLayerOffset(z);
+        }
+
         private int GetLayerOffset(int z)
         {
             return layerOffset[z];
@@ -105,10 +120,6 @@ namespace Sandbox.GameScene
             return ret;
         }
 
-        private void ClearLayer(int offset)
-        {
-        }
-
         private void InitBlocksArray()
         {
             //old method
@@ -118,7 +129,7 @@ namespace Sandbox.GameScene
             layerCapacity = 10;
             layerCount = 1; //reserve 0 for empty layer
             blocks = new BlockData[layerCapacity * w * w];
-            layerOffset = new int[h];
+            layerOffset = new int[h + 1]; //here we add 1 to allow overflow in World.BlockIterator
             freeLayerOffset = new int[h];
             for (int i = 0; i < layerCapacity - 1; ++i)
             {

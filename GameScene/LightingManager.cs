@@ -12,10 +12,10 @@ namespace Sandbox.GameScene
         {
             this.world = world;
 
-            generatedRange.xmin = x - 95;
-            generatedRange.xmax = x + 95;
-            generatedRange.ymin = y - 95;
-            generatedRange.ymax = y + 95;
+            generatedRange.xmin = x - 55;
+            generatedRange.xmax = x + 55;
+            generatedRange.ymin = y - 55;
+            generatedRange.ymax = y + 55;
             generatedRange.zmin = 0;
             generatedRange.zmax = World.ChunkHeight - 1;
 
@@ -33,42 +33,40 @@ namespace Sandbox.GameScene
             var time = clock.ElapsedMilliseconds;
 
             //apply lightness to world
-            for (int xi = generatedRange.xmin; xi <= generatedRange.xmax; ++xi)
+            var itor = new World.BlockIterator(world,
+                generatedRange.xmin, generatedRange.xmax,
+                generatedRange.ymin, generatedRange.ymax,
+                generatedRange.zmin, generatedRange.zmax, true);
+            while (itor.Next())
             {
-                for (int yi = generatedRange.ymin; yi <= generatedRange.ymax; ++yi)
+                var block = itor.GetBlock();
+                if (block.BlockId != 0)
                 {
-                    for (int zi = generatedRange.zmin; zi <= generatedRange.zmax; ++zi)
+                    if (itor.GetBlockOffset(1, 0, 0).BlockId == 0)
                     {
-                        if (world.GetBlock(xi, yi, zi).BlockId != 0)
-                        {
-                            var theBlock = world.GetBlock(xi, yi, zi);
-                            if (world.GetBlock(xi + 1, yi, zi).BlockId == 0)
-                            {
-                                theBlock.LightnessXP = lc.GetLightnessOnBlock(xi + 1, yi, zi);
-                            }
-                            if (world.GetBlock(xi - 1, yi, zi).BlockId == 0)
-                            {
-                                theBlock.LightnessXN = lc.GetLightnessOnBlock(xi - 1, yi, zi);
-                            }
-                            if (world.GetBlock(xi, yi + 1, zi).BlockId == 0)
-                            {
-                                theBlock.LightnessYP = lc.GetLightnessOnBlock(xi, yi + 1, zi);
-                            }
-                            if (world.GetBlock(xi, yi - 1, zi).BlockId == 0)
-                            {
-                                theBlock.LightnessYN = lc.GetLightnessOnBlock(xi, yi - 1, zi);
-                            }
-                            if (world.GetBlock(xi, yi, zi + 1).BlockId == 0)
-                            {
-                                theBlock.LightnessZP = lc.GetLightnessOnBlock(xi, yi, zi + 1);
-                            }
-                            if (world.GetBlock(xi, yi, zi - 1).BlockId == 0)
-                            {
-                                theBlock.LightnessZN = lc.GetLightnessOnBlock(xi, yi, zi - 1);
-                            }
-                            world.SetBlock(xi, yi, zi, theBlock);
-                        }
+                        block.LightnessXP = lc.GetLightnessOnBlock(itor.X + 1, itor.Y, itor.Z);
                     }
+                    if (itor.GetBlockOffset(-1, 0, 0).BlockId == 0)
+                    {
+                        block.LightnessXN = lc.GetLightnessOnBlock(itor.X - 1, itor.Y, itor.Z);
+                    }
+                    if (itor.GetBlockOffset(0, 1, 0).BlockId == 0)
+                    {
+                        block.LightnessYP = lc.GetLightnessOnBlock(itor.X, itor.Y + 1, itor.Z);
+                    }
+                    if (itor.GetBlockOffset(0, -1, 0).BlockId == 0)
+                    {
+                        block.LightnessYN = lc.GetLightnessOnBlock(itor.X, itor.Y - 1, itor.Z);
+                    }
+                    if (itor.GetBlockOffset(0, 0, 1).BlockId == 0)
+                    {
+                        block.LightnessZP = lc.GetLightnessOnBlock(itor.X, itor.Y, itor.Z + 1);
+                    }
+                    if (itor.GetBlockOffset(0, 0, -1).BlockId == 0)
+                    {
+                        block.LightnessZN = lc.GetLightnessOnBlock(itor.X, itor.Y, itor.Z - 1);
+                    }
+                    itor.SetBlock(block);
                 }
             }
         }
@@ -84,7 +82,6 @@ namespace Sandbox.GameScene
 
         private List<Rectangle> rectangles = new List<Rectangle>();
         private int[] rectOfBlock;
-        private byte[] lightness;
 
         private class RectGenerator
         {
@@ -110,7 +107,6 @@ namespace Sandbox.GameScene
                 this.zsize = zmax - zmin + 1;
             }
 
-            //TODO currently the bottleneck is at block iteration, improve that
             public void Generate()
             {
                 //first find all empty blocks
@@ -118,24 +114,20 @@ namespace Sandbox.GameScene
                 emptyList = new int[xsize * ysize * zsize];
                 manager.rectOfBlock = new int[xsize * ysize * zsize];
                 emptyCount = 0;
-                for (int zi = zmin; zi <= zmax; ++zi)
+
+                var itor = new World.BlockIterator(manager.world, xmin, xmax, ymin, ymax, zmin, zmax, false);
+                while (itor.Next())
                 {
-                    for (int yi = ymin; yi <= ymax; ++yi)
+                    if (itor.GetBlock().BlockId == 0)
                     {
-                        for (int xi = xmin; xi <= xmax; ++xi)
-                        {
-                            if (manager.world.GetBlock(xi, yi, zi).BlockId == 0)
-                            {
-                                int index = zi * xsize * ysize + (yi - ymin) * xsize + (xi - xmin);
-                                int emptyId = emptyCount++;
-                                isEmpty[index] = emptyId;
-                                emptyList[emptyId] = index;
-                            }
-                            else
-                            {
-                                isEmpty[zi * xsize * ysize + (yi - ymin) * xsize + (xi - xmin)] = -1;
-                            }
-                        }
+                        int index = itor.Z * xsize * ysize + (itor.Y - ymin) * xsize + (itor.X - xmin);
+                        int emptyId = emptyCount++;
+                        isEmpty[index] = emptyId;
+                        emptyList[emptyId] = index;
+                    }
+                    else
+                    {
+                        isEmpty[itor.Z * xsize * ysize + (itor.Y - ymin) * xsize + (itor.X - xmin)] = -1;
                     }
                 }
 
@@ -147,25 +139,6 @@ namespace Sandbox.GameScene
 
             private bool FindEmpty(out int x, out int y, out int z)
             {
-                //TODO allow to search from a random offset
-                //for (int zi = 0; zi < World.ChunkHeight; ++zi)
-                //{
-                //    for (int yi = ymin; yi <= ymax; ++yi)
-                //    {
-                //        for (int xi = xmin; xi <= xmax; ++xi)
-                //        {
-                //            if (isEmpty[zi * xsize * ysize + (yi - ymin) * xsize + (xi - xmin)] == -1)
-                //            {
-                //                x = xi;
-                //                y = yi;
-                //                z = zi;
-                //                return true;
-                //            }
-                //        }
-                //    }
-                //}
-                //x = y = z = 0;
-                //return false;
                 if (emptyCount == 0)
                 {
                     x = y = z = 0;
@@ -413,7 +386,6 @@ namespace Sandbox.GameScene
                 //add rect to list
                 manager.rectangles.Add(rect);
             }
-
         }
 
         private class LightnessCalculator
@@ -431,7 +403,6 @@ namespace Sandbox.GameScene
             private struct LightnessSpread
             {
                 public int rectIndex;
-                //public int srcX, srcY, srcZ;
                 public Rectangle src;
                 public int direction; //source direction
                 public int intensity;
@@ -440,7 +411,6 @@ namespace Sandbox.GameScene
 
             private struct RectSpreadInfo
             {
-                //public int offsetX, offsetY, offsetZ;
                 public Rectangle srcOffset;
                 public int intensity;
                 public int next;
@@ -479,9 +449,6 @@ namespace Sandbox.GameScene
                         ls.intensity = 13;
                         ls.direction = 16; //z+
                         ls.rectIndex = i;
-                        //ls.srcX = manager.rectangles[i].xmin;
-                        //ls.srcY = manager.rectangles[i].ymin;
-                        //ls.srcZ = manager.rectangles[i].zmin;
                         ls.src = manager.rectangles[i]; ls.src.zmin = ls.src.zmax;
                         ls.reduceZ = 0;
                         Append(ls);

@@ -57,8 +57,8 @@ GS_IN VS(VS_IN input)
     float nDotL = saturate(0.3 + 0.9 * dot(cross(input.dir_u.xyz, input.dir_v.xyz), -lightdir));
     output.col = saturate(
         (
-            nDotL * (input.col.x) +
-            input.col.y * 0.5
+            nDotL * (input.col.x) * 0.93 +
+            input.col.y * 0.43 + 0.07
         ) * 1.2
         * float4(0.4, 1.2, 0.0, 1.0) );
 

@@ -67,7 +67,7 @@ namespace Sandbox
                         for (int y = -2; y <= 2; ++y)
                         {
                             theWorld.SetBlock(x, y, x + 2, new BlockData { BlockId = 1 });
-                            if (x == 0 && y == 0)
+                            if (false && x == 0 && y == 0)
                             {
                                 for (int z = 0; z < 4; ++z)
                                     theWorld.SetBlock(x, y, z, new BlockData { BlockId = 1 });
@@ -92,7 +92,6 @@ namespace Sandbox
                 }
 
                 LightingManager lighting = new LightingManager(theWorld, 0, 0);
-                //return;
 
                 var shaderFace = Shader<VertexConstData>.CreateFromString(rm, BlockFaceShader.Value);
                 shaderFace.CreateSamplerForPixelShader(0, new SamplerStateDescription

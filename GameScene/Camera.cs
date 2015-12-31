@@ -18,10 +18,10 @@ namespace Sandbox.GameScene
         public Camera(Vector3 pos)
         {
             this.Position = pos;
-            this.Collision = new Box { center = new Vector3(), halfSize = new Vector3(1.0f, 1.0f, 2.0f) };
+            this.Collision = new Box { center = new Vector3(), halfSize = new Vector3(0.5f, 0.5f, 1.0f) };
             this.MaxSize = 1;
             this.Acceloration = new Vector3(0, 0, -30);
-            this.eye_offset = new Vector3(0.0f, 0.0f, 1.45f);
+            this.eye_offset = new Vector3(0.0f, 0.0f, 0.75f);
 
             InitStairTest();
         }
