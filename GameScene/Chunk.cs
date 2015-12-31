@@ -263,6 +263,19 @@ namespace Sandbox.GameScene
             return new Vector4();
         }
 
+        private Vector4 GetColorForLightness(int l)
+        {
+            if (l == 13)
+            {
+                //TODO really check if it's sun light
+                return new Vector4(l / (float)16, 0, 0, 0);
+            }
+            else
+            {
+                return new Vector4(0, l / (float)16, 0, 0);
+            }
+        }
+
         private void AppendBlockRenderData(IRenderBuffer<BlockRenderData> buffer, int x, int y, int z)
         {
             BlockData data = GetBlock(x, y, z);
@@ -271,7 +284,7 @@ namespace Sandbox.GameScene
             if (!IsNormalCubeBeside(x, y, z, 0, 0, -1)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y + 0.0f, z - 0.5f, 1.0f),
-                col = new Vector4(1.0f, 0.0f, 0.0f, 1.0f),
+                col = GetColorForLightness(data.LightnessZN),
                 dir_u = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 0),
@@ -279,7 +292,7 @@ namespace Sandbox.GameScene
             if (!IsNormalCubeBeside(x, y, z, 0, 0, 1)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y + 0.0f, z + 0.5f, 1.0f),
-                col = new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
+                col = GetColorForLightness(data.LightnessZP),
                 dir_u = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 1),
@@ -287,7 +300,7 @@ namespace Sandbox.GameScene
             if (!IsNormalCubeBeside(x, y, z, 0, 1, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y + 0.5f, z + 0.0f, 1.0f),
-                col = new Vector4(0.0f, 0.0f, 1.0f, 1.0f),
+                col = GetColorForLightness(data.LightnessYP),
                 dir_u = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 2),
@@ -295,7 +308,7 @@ namespace Sandbox.GameScene
             if (!IsNormalCubeBeside(x, y, z, 0, -1, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y - 0.5f, z + 0.0f, 1.0f),
-                col = new Vector4(1.0f, 1.0f, 0.0f, 1.0f),
+                col = GetColorForLightness(data.LightnessYN),
                 dir_u = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 dir_v = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 3),
@@ -303,7 +316,7 @@ namespace Sandbox.GameScene
             if (!IsNormalCubeBeside(x, y, z, -1, 0, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x - 0.5f, y + 0.0f, z + 0.0f, 1.0f),
-                col = new Vector4(1.0f, 0.0f, 1.0f, 1.0f),
+                col = GetColorForLightness(data.LightnessXN),
                 dir_u = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 4),
@@ -311,7 +324,7 @@ namespace Sandbox.GameScene
             if (!IsNormalCubeBeside(x, y, z, 1, 0, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.5f, y + 0.0f, z + 0.0f, 1.0f),
-                col = new Vector4(0.0f, 1.0f, 1.0f, 1.0f),
+                col = GetColorForLightness(data.LightnessXP),
                 dir_u = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 5),

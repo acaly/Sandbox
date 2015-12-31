@@ -12,10 +12,10 @@ namespace Sandbox.GameScene
         {
             this.world = world;
 
-            generatedRange.xmin = x - 50;
-            generatedRange.xmax = x + 50;
-            generatedRange.ymin = y - 50;
-            generatedRange.ymax = y + 50;
+            generatedRange.xmin = x - 95;
+            generatedRange.xmax = x + 95;
+            generatedRange.ymin = y - 95;
+            generatedRange.ymax = y + 95;
             generatedRange.zmin = 0;
             generatedRange.zmax = World.ChunkHeight - 1;
 
@@ -31,7 +31,48 @@ namespace Sandbox.GameScene
             lc.Calculate();
 
             var time = clock.ElapsedMilliseconds;
+
+            //apply lightness to world
+            for (int xi = generatedRange.xmin; xi <= generatedRange.xmax; ++xi)
+            {
+                for (int yi = generatedRange.ymin; yi <= generatedRange.ymax; ++yi)
+                {
+                    for (int zi = generatedRange.zmin; zi <= generatedRange.zmax; ++zi)
+                    {
+                        if (world.GetBlock(xi, yi, zi).BlockId != 0)
+                        {
+                            var theBlock = world.GetBlock(xi, yi, zi);
+                            if (world.GetBlock(xi + 1, yi, zi).BlockId == 0)
+                            {
+                                theBlock.LightnessXP = lc.GetLightnessOnBlock(xi + 1, yi, zi);
+                            }
+                            if (world.GetBlock(xi - 1, yi, zi).BlockId == 0)
+                            {
+                                theBlock.LightnessXN = lc.GetLightnessOnBlock(xi - 1, yi, zi);
+                            }
+                            if (world.GetBlock(xi, yi + 1, zi).BlockId == 0)
+                            {
+                                theBlock.LightnessYP = lc.GetLightnessOnBlock(xi, yi + 1, zi);
+                            }
+                            if (world.GetBlock(xi, yi - 1, zi).BlockId == 0)
+                            {
+                                theBlock.LightnessYN = lc.GetLightnessOnBlock(xi, yi - 1, zi);
+                            }
+                            if (world.GetBlock(xi, yi, zi + 1).BlockId == 0)
+                            {
+                                theBlock.LightnessZP = lc.GetLightnessOnBlock(xi, yi, zi + 1);
+                            }
+                            if (world.GetBlock(xi, yi, zi - 1).BlockId == 0)
+                            {
+                                theBlock.LightnessZN = lc.GetLightnessOnBlock(xi, yi, zi - 1);
+                            }
+                            world.SetBlock(xi, yi, zi, theBlock);
+                        }
+                    }
+                }
+            }
         }
+
 
         private struct Rectangle
         {
@@ -390,17 +431,20 @@ namespace Sandbox.GameScene
             private struct LightnessSpread
             {
                 public int rectIndex;
-                public int srcX, srcY, srcZ;
+                //public int srcX, srcY, srcZ;
+                public Rectangle src;
                 public int direction; //source direction
                 public int intensity;
-                public int reduce;
+                public int reduceZ;
             }
 
             private struct RectSpreadInfo
             {
-                public int offsetX, offsetY, offsetZ;
+                //public int offsetX, offsetY, offsetZ;
+                public Rectangle srcOffset;
                 public int intensity;
                 public int next;
+                public int reduceZ;
             }
 
             private struct RectInfo
@@ -435,11 +479,12 @@ namespace Sandbox.GameScene
                         ls.intensity = 13;
                         ls.direction = 16; //z+
                         ls.rectIndex = i;
-                        ls.srcX = manager.rectangles[i].xmin;
-                        ls.srcY = manager.rectangles[i].ymin;
-                        ls.srcZ = manager.rectangles[i].zmin;
-                        ls.reduce = 0;
-                        SpreadInRect(ls);
+                        //ls.srcX = manager.rectangles[i].xmin;
+                        //ls.srcY = manager.rectangles[i].ymin;
+                        //ls.srcZ = manager.rectangles[i].zmin;
+                        ls.src = manager.rectangles[i]; ls.src.zmin = ls.src.zmax;
+                        ls.reduceZ = 0;
+                        Append(ls);
                     }
                 }
 
@@ -448,9 +493,36 @@ namespace Sandbox.GameScene
                 {
                     for (int j = 0; j < spreadQueue[i].Count; ++j)
                     {
-                        SpreadInRect(spreadQueue[i][j]);
+                        SpreadInRect(spreadQueue[i][j], j);
                     }
                 }
+            }
+
+            public int GetLightnessOnBlock(int x, int y, int z)
+            {
+                if (x < manager.generatedRange.xmin || x > manager.generatedRange.xmax ||
+                    y < manager.generatedRange.ymin || y > manager.generatedRange.ymax ||
+                    z < manager.generatedRange.zmin || z > manager.generatedRange.zmax)
+                {
+                    return 3;
+                }
+
+                int blockIndex = (x - manager.generatedRange.xmin) +
+                    (y - manager.generatedRange.ymin) * xsize +
+                    (z - manager.generatedRange.zmin) * xsize * ysize;
+                int rectIndex = manager.rectOfBlock[blockIndex];
+                int offsetX = x - manager.rectangles[rectIndex].xmin;
+                int offsetY = y - manager.rectangles[rectIndex].ymin;
+                int offsetZ = z - manager.rectangles[rectIndex].zmin;
+                int ret = 0;
+                foreach (var s in GetAllSpreadInfoForRect(rectIndex))
+                {
+                    //int value = CalculateIntensityInRect(s.intensity,
+                    //    s.offsetX - offsetX, s.offsetY - offsetY, s.offsetZ - offsetZ, s.reduce);
+                    int value = CalculateIntensityInRect(s.srcOffset, s.intensity, offsetX, offsetY, offsetZ, s.reduceZ);
+                    if (ret < value) ret = value;
+                }
+                return ret;
             }
 
             private IEnumerable<RectSpreadInfo> GetAllSpreadInfoForRect(int index)
@@ -471,38 +543,53 @@ namespace Sandbox.GameScene
                 spreadQueue[spread.intensity].Add(spread);
             }
 
-            //TODO customize this one
             private struct SpreadToRectInfo
             {
-                public int lightness;
-                public int x, y, z;
                 public int direction;
             }
 
+            //TODO customize this one
             private Dictionary<int, SpreadToRectInfo> rectIndexHashSet = new Dictionary<int, SpreadToRectInfo>();
 
-            private void SpreadInRect(LightnessSpread spread)
+            private void SpreadInRect(LightnessSpread spread, int indexInQueue)
             {
                 Rectangle rect = manager.rectangles[spread.rectIndex];
-                int offsetX = spread.srcX - rect.xmin;
-                int offsetY = spread.srcY - rect.ymin;
-                int offsetZ = spread.srcZ - rect.zmin;
-                int reduce = spread.reduce;
+                Rectangle rectSrcOffset = spread.src;
+                rectSrcOffset.xmax -= rect.xmin;
+                rectSrcOffset.xmin -= rect.xmin;
+                rectSrcOffset.ymax -= rect.ymin;
+                rectSrcOffset.ymin -= rect.ymin;
+                rectSrcOffset.zmax -= rect.zmin;
+                rectSrcOffset.zmin -= rect.zmin;
+                int reduceZ = spread.reduceZ;
 
                 //see if the input intensity is too low
+                //check in already added spread
                 {
                     int spreadIndex = rectInfo[spread.rectIndex].spreadInfoRoot;
                     while (spreadIndex != 0)
                     {
                         var spreadInfo = spreadBuffer[spreadIndex];
-                        var spreadLightnessAtSrc = CalculateIntensityInRect(spreadInfo.intensity,
-                            spreadInfo.offsetX - offsetX, spreadInfo.offsetY - offsetY, spreadInfo.offsetZ - offsetZ,
-                            reduce);
+                        var spreadLightnessAtSrc = CalculateIntensityInRect(spreadInfo.srcOffset, spread.intensity, rectSrcOffset, spreadInfo.reduceZ);
                         if (spreadLightnessAtSrc >= spread.intensity)
                         {
                             return;
                         }
                         spreadIndex = spreadInfo.next;
+                    }
+                }
+                //check queue
+                {
+                    //higher ones have been applied, lower ones can't have same intensity
+                    for (int i = indexInQueue + 1; i < spreadQueue[spread.intensity].Count; ++i)
+                    {
+                        var spreadInfo = spreadQueue[spread.intensity][i];
+                        if (spreadInfo.rectIndex != spread.rectIndex) continue;
+                        var spreadLightnessAtSrc = CalculateIntensityInRect(spread.src, spread.intensity, spreadInfo.src, reduceZ);
+                        if (spreadLightnessAtSrc >= spread.intensity)
+                        {
+                            return;
+                        }
                     }
                 }
 
@@ -514,9 +601,8 @@ namespace Sandbox.GameScene
                     {
                         intensity = spread.intensity,
                         next = spreadIndex,
-                        offsetX = offsetX,
-                        offsetY = offsetY,
-                        offsetZ = offsetZ,
+                        srcOffset = rectSrcOffset,
+                        reduceZ = reduceZ,
                     });
                     rectInfo[spread.rectIndex].spreadInfoRoot = newSpreadIndex;
                 }
@@ -533,18 +619,11 @@ namespace Sandbox.GameScene
                         {
                             var zi = rect.zmin - 1;
                             var rectIndex = manager.rectOfBlock[BlockIndexOf(xi, yi, zi)];
-                            var lightnessAtDest = CalculateIntensityInRect(spread.intensity,
-                                xi - spread.srcX, yi - spread.srcY, zi - spread.srcZ,
-                                reduce);
                             var newInfo = new SpreadToRectInfo
                             {
                                 direction = 16, //z+
-                                lightness = lightnessAtDest,
-                                x = xi,
-                                y = yi,
-                                z = zi,
                             };
-                            if (!rectIndexHashSet.ContainsKey(rectIndex) || rectIndexHashSet[rectIndex].lightness < newInfo.lightness)
+                            if (!rectIndexHashSet.ContainsKey(rectIndex))
                             {
                                 rectIndexHashSet[rectIndex] = newInfo;
                             }
@@ -553,18 +632,11 @@ namespace Sandbox.GameScene
                         {
                             var zi = rect.zmax + 1;
                             var rectIndex = manager.rectOfBlock[BlockIndexOf(xi, yi, zi)];
-                            var lightnessAtDest = CalculateIntensityInRect(spread.intensity,
-                                xi - spread.srcX, yi - spread.srcY, zi - spread.srcZ,
-                                reduce);
                             var newInfo = new SpreadToRectInfo
                             {
                                 direction = 32, //z-
-                                lightness = lightnessAtDest,
-                                x = xi,
-                                y = yi,
-                                z = zi,
                             };
-                            if (!rectIndexHashSet.ContainsKey(rectIndex) || rectIndexHashSet[rectIndex].lightness < newInfo.lightness)
+                            if (!rectIndexHashSet.ContainsKey(rectIndex))
                             {
                                 rectIndexHashSet[rectIndex] = newInfo;
                             }
@@ -580,18 +652,11 @@ namespace Sandbox.GameScene
                         {
                             var yi = rect.ymin - 1;
                             var rectIndex = manager.rectOfBlock[BlockIndexOf(xi, yi, zi)];
-                            var lightnessAtDest = CalculateIntensityInRect(spread.intensity,
-                                xi - spread.srcX, yi - spread.srcY, zi - spread.srcZ,
-                                reduce);
                             var newInfo = new SpreadToRectInfo
                             {
                                 direction = 4, //y+
-                                lightness = lightnessAtDest,
-                                x = xi,
-                                y = yi,
-                                z = zi,
                             };
-                            if (!rectIndexHashSet.ContainsKey(rectIndex) || rectIndexHashSet[rectIndex].lightness < newInfo.lightness)
+                            if (!rectIndexHashSet.ContainsKey(rectIndex))
                             {
                                 rectIndexHashSet[rectIndex] = newInfo;
                             }
@@ -600,18 +665,11 @@ namespace Sandbox.GameScene
                         {
                             var yi = rect.ymax + 1;
                             var rectIndex = manager.rectOfBlock[BlockIndexOf(xi, yi, zi)];
-                            var lightnessAtDest = CalculateIntensityInRect(spread.intensity,
-                                xi - spread.srcX, yi - spread.srcY, zi - spread.srcZ,
-                                reduce);
                             var newInfo = new SpreadToRectInfo
                             {
                                 direction = 8, //y-
-                                lightness = lightnessAtDest,
-                                x = xi,
-                                y = yi,
-                                z = zi,
                             };
-                            if (!rectIndexHashSet.ContainsKey(rectIndex) || rectIndexHashSet[rectIndex].lightness < newInfo.lightness)
+                            if (!rectIndexHashSet.ContainsKey(rectIndex))
                             {
                                 rectIndexHashSet[rectIndex] = newInfo;
                             }
@@ -627,18 +685,11 @@ namespace Sandbox.GameScene
                         {
                             var xi = rect.xmin - 1;
                             var rectIndex = manager.rectOfBlock[BlockIndexOf(xi, yi, zi)];
-                            var lightnessAtDest = CalculateIntensityInRect(spread.intensity,
-                                xi - spread.srcX, yi - spread.srcY, zi - spread.srcZ,
-                                reduce);
                             var newInfo = new SpreadToRectInfo
                             {
                                 direction = 1, //x+
-                                lightness = lightnessAtDest,
-                                x = xi,
-                                y = yi,
-                                z = zi,
                             };
-                            if (!rectIndexHashSet.ContainsKey(rectIndex) || rectIndexHashSet[rectIndex].lightness < newInfo.lightness)
+                            if (!rectIndexHashSet.ContainsKey(rectIndex))
                             {
                                 rectIndexHashSet[rectIndex] = newInfo;
                             }
@@ -647,18 +698,11 @@ namespace Sandbox.GameScene
                         {
                             var xi = rect.xmax + 1;
                             var rectIndex = manager.rectOfBlock[BlockIndexOf(xi, yi, zi)];
-                            var lightnessAtDest = CalculateIntensityInRect(spread.intensity,
-                                xi - spread.srcX, yi - spread.srcY, zi - spread.srcZ,
-                                reduce);
                             var newInfo = new SpreadToRectInfo
                             {
                                 direction = 2, //x-
-                                lightness = lightnessAtDest,
-                                x = xi,
-                                y = yi,
-                                z = zi,
                             };
-                            if (!rectIndexHashSet.ContainsKey(rectIndex) || rectIndexHashSet[rectIndex].lightness < newInfo.lightness)
+                            if (!rectIndexHashSet.ContainsKey(rectIndex))
                             {
                                 rectIndexHashSet[rectIndex] = newInfo;
                             }
@@ -670,16 +714,16 @@ namespace Sandbox.GameScene
                 //if direction is same, use the same value as reduce, otherwise, use 1
                 foreach (var spreadRect in rectIndexHashSet)
                 {
-                    Append(new LightnessSpread
+                    Rectangle destRect = manager.rectangles[spreadRect.Key];
+                    var newSpread = new LightnessSpread
                     {
                         direction = spreadRect.Value.direction,
-                        intensity = spreadRect.Value.lightness,
                         rectIndex = spreadRect.Key,
-                        srcX = spreadRect.Value.x,
-                        srcY = spreadRect.Value.y,
-                        srcZ = spreadRect.Value.z,
-                        reduce = spreadRect.Value.direction == spread.direction ? reduce : 1,
-                    });
+                        reduceZ = spreadRect.Value.direction == 16 ? reduceZ : 1,
+                    };
+                    CalculateIntensityInRect(spread.src, spread.intensity, spread.reduceZ, destRect, 
+                        out newSpread.src, out newSpread.intensity);
+                    Append(newSpread);
                 }
             }
 
@@ -690,10 +734,110 @@ namespace Sandbox.GameScene
                     (z - manager.generatedRange.zmin) * xsize * ysize;
             }
 
-            private int CalculateIntensityInRect(int src, int xdiff, int ydiff, int zdiff, int reduceOnDirection)
+            private int CalculateIntensityInRect(int src, int xdiff, int ydiff, int zdiff, int reduce)
             {
-                int ret = src - (Math.Abs(xdiff) + Math.Abs(ydiff) + Math.Abs(zdiff)) * reduceOnDirection;
+                int ret = src - (Math.Abs(xdiff) + Math.Abs(ydiff) + Math.Abs(zdiff)) * reduce;
                 return ret >= 0 ? ret : 0;
+            }
+
+            private int CalculateIntensityInRect(Rectangle srcRect, int srcIntensity, int x, int y, int z, int reduceZ)
+            {
+                int dist = 0;
+                if (x < srcRect.xmin) dist += srcRect.xmin - x;
+                else if (x > srcRect.xmax) dist += x - srcRect.xmax;
+                if (y < srcRect.ymin) dist += srcRect.ymin - y;
+                else if (y > srcRect.ymax) dist += y - srcRect.ymax;
+                if (reduceZ != 0)
+                {
+                    if (z < srcRect.zmin) dist += (srcRect.zmin - z) * reduceZ;
+                    else if (z > srcRect.zmax) dist += (z - srcRect.zmax) * reduceZ;
+                }
+                return dist >= srcIntensity ? 0 : srcIntensity - dist;
+            }
+
+            //calculate the minimal intensity from srcRect to destRect
+            private int CalculateIntensityInRect(Rectangle srcRect, int srcIntensity, Rectangle destRect, int reduceZ)
+            {
+                int dist = 0;
+                {
+                    int distX = Math.Max(destRect.xmax - srcRect.xmax, srcRect.xmin - destRect.xmin);
+                    if (distX > 0) dist += distX;
+                }
+                {
+                    int distY = Math.Max(destRect.ymax - srcRect.ymax, srcRect.ymin - destRect.ymin);
+                    if (distY > 0) dist += distY;
+                }
+                {
+                    int distZ = Math.Max(destRect.zmax - srcRect.zmax, srcRect.zmin - destRect.zmin);
+                    if (distZ > 0) dist += distZ * reduceZ;
+                }
+                srcIntensity -= dist;
+                return srcIntensity <= 0 ? 0 : srcIntensity;
+            }
+
+            //spread light from srcRect to destRect
+            //calculate effective output
+            private void CalculateIntensityInRect(Rectangle srcRect, int srcIntensity, int reduceZ, Rectangle destRect, 
+                out Rectangle outRect, out int outIntensity)
+            {
+                int dist = 0;
+                outRect = new Rectangle();
+                //x
+                if (destRect.xmax <= srcRect.xmin)
+                {
+                    outRect.xmax = outRect.xmin = destRect.xmax;
+                    dist += srcRect.xmin - destRect.xmax;
+                }
+                else if (destRect.xmin >= srcRect.xmax)
+                {
+                    outRect.xmax = outRect.xmin = destRect.xmin;
+                    dist += destRect.xmin - srcRect.xmax;
+                }
+                else
+                {
+                    outRect.xmin = Math.Max(srcRect.xmin, destRect.xmin);
+                    outRect.xmax = Math.Min(srcRect.xmax, destRect.xmax);
+                }
+                //y
+                if (destRect.ymax <= srcRect.ymin)
+                {
+                    outRect.ymax = outRect.ymin = destRect.ymax;
+                    dist += srcRect.ymin - destRect.ymax;
+                }
+                else if (destRect.ymin >= srcRect.ymax)
+                {
+                    outRect.ymax = outRect.ymin = destRect.ymin;
+                    dist += destRect.ymin - srcRect.ymax;
+                }
+                else
+                {
+                    outRect.ymin = Math.Max(srcRect.ymin, destRect.ymin);
+                    outRect.ymax = Math.Min(srcRect.ymax, destRect.ymax);
+                }
+                //z
+                if (destRect.zmax <= srcRect.zmin)
+                {
+                    outRect.zmax = outRect.zmin = destRect.zmax;
+                    dist += (srcRect.zmin - destRect.zmax) * reduceZ;
+                }
+                else if (destRect.zmin >= srcRect.zmax)
+                {
+                    outRect.zmax = outRect.zmin = destRect.zmin;
+                    dist += (destRect.zmin - srcRect.zmax) * reduceZ;
+                }
+                else
+                {
+                    outRect.zmin = Math.Max(srcRect.zmin, destRect.zmin);
+                    outRect.zmax = Math.Min(srcRect.zmax, destRect.zmax);
+                }
+                if (dist >= srcIntensity)
+                {
+                    outIntensity = 0;
+                }
+                else
+                {
+                    outIntensity = srcIntensity - dist;
+                }
             }
         }
     }

@@ -55,7 +55,12 @@ GS_IN VS(VS_IN input)
 
     float3 lightdir = normalize(float3(0, 0.6, 4));
     float nDotL = saturate(0.3 + 0.9 * dot(cross(input.dir_u.xyz, input.dir_v.xyz), -lightdir));
-    output.col = saturate(nDotL * float4(0.4, 1.2, 0.0, 1.0));
+    output.col = saturate(
+        (
+            nDotL * (input.col.x) +
+            input.col.y * 0.5
+        ) * 1.2
+        * float4(0.4, 1.2, 0.0, 1.0) );
 
 	return output;
 }

@@ -9,10 +9,7 @@ namespace Sandbox.GameScene
     struct BlockData
     {
         public int BlockId;
-
-        //for temperary usage only
-        //currently used in: LightingManager
-        public int flags;
+        public int LightnessXP, LightnessXN, LightnessYP, LightnessYN, LightnessZP, LightnessZN;
 
         public bool HasCollision()
         {

@@ -60,16 +60,39 @@ namespace Sandbox
                 //    terr.Resample(4);
                 //    terr.CreateWorld(theWorld, 000, 000, 250, 250);
                 //}
-                //for (int x = -20; x <= 20; ++x)
-                //{
-                //    for (int y = -20; y <= 20; ++y)
-                //    {
-                //        theWorld.SetBlock(x, y, 35 + x, new BlockData { BlockId = 1 });
-                //    }
-                //}
+                if (false)
+                {
+                    for (int x = -2; x <= 2; ++x)
+                    {
+                        for (int y = -2; y <= 2; ++y)
+                        {
+                            theWorld.SetBlock(x, y, x + 2, new BlockData { BlockId = 1 });
+                            if (x == 0 && y == 0)
+                            {
+                                for (int z = 0; z < 4; ++z)
+                                    theWorld.SetBlock(x, y, z, new BlockData { BlockId = 1 });
+                            }
+                            //if (x == -20 || x == 20 || y == -20 || y == 20)
+                            //{
+                            //    theWorld.SetBlock(x, y, 1, new BlockData { BlockId = 1 });
+                            //}
+                            //if (Math.Abs(x) < 5 && Math.Abs(y) < 5)
+                            //{
+                            //    theWorld.SetBlock(x, y, 7, new BlockData { BlockId = 1 });
+                            //}
+                            //if (Math.Abs(x) == 20 && Math.Abs(y) == 0)
+                            //{
+                            //    theWorld.SetBlock(x, y, 2, new BlockData { BlockId = 1 });
+                            //    theWorld.SetBlock(x, y, 3, new BlockData { BlockId = 1 });
+                            //    theWorld.SetBlock(x, y, 4, new BlockData { BlockId = 1 });
+                            //    theWorld.SetBlock(x, y, 5, new BlockData { BlockId = 1 });
+                            //}
+                        }
+                    }
+                }
 
                 LightingManager lighting = new LightingManager(theWorld, 0, 0);
-                return;
+                //return;
 
                 var shaderFace = Shader<VertexConstData>.CreateFromString(rm, BlockFaceShader.Value);
                 shaderFace.CreateSamplerForPixelShader(0, new SamplerStateDescription
@@ -99,15 +122,15 @@ namespace Sandbox
                 EventWaitHandle physicsStartEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
                 EventWaitHandle physicsFinishEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
 
-                Thread physicsThread = new Thread(new ThreadStart(delegate
-                {
-                    while (true)
-                    {
-                        physicsStartEvent.WaitOne();
-                        theWorld.StepPhysics(1.0f / 60);
-                        physicsFinishEvent.Set();
-                    }
-                }));
+                //Thread physicsThread = new Thread(new ThreadStart(delegate
+                //{
+                //    while (true)
+                //    {
+                //        physicsStartEvent.WaitOne();
+                //        theWorld.StepPhysics(1.0f / 60);
+                //        physicsFinishEvent.Set();
+                //    }
+                //}));
                 //physicsThread.Start();
                 
                 //GC.Collect();
@@ -126,7 +149,7 @@ namespace Sandbox
 
                     rdm.Render(frame);
 
-                    frame.Present(false);
+                    frame.Present(true);
 
                     //physicsFinishEvent.WaitOne();
                 });
