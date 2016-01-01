@@ -6,10 +6,12 @@ using System.Threading.Tasks;
 
 namespace Sandbox.GameScene
 {
+    //TODO avoid copying full struct onto stack when reading/writing
     struct BlockData
     {
         public int BlockId;
-        public int LightnessXP, LightnessXN, LightnessYP, LightnessYN, LightnessZP, LightnessZN;
+        public byte LightnessXP, LightnessXN, LightnessYP, LightnessYN, LightnessZP, LightnessZN;
+        public int BlockColor;
 
         public bool HasCollision()
         {

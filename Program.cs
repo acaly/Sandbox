@@ -52,7 +52,8 @@ namespace Sandbox
                 MainForm = rm.Form;
 
                 //{
-                NatsuTerrain.CreateWorld(theWorld, "blocks.bin", 5);
+                NatsuTerrain.CreateWorld(theWorld, @"blocks.natsu", 5);
+                //NatsuTerrain.CreateWorld(theWorld, @"E:\1.schematic.natsu", 5);
                 //NatsuTerrain.CreateWorld(theWorld, @"E:\2.schematic.natsu", 5);
                 //}
                 //{
@@ -92,6 +93,7 @@ namespace Sandbox
                 }
 
                 LightingManager lighting = new LightingManager(theWorld, 0, 0);
+                //return;
 
                 var shaderFace = Shader<VertexConstData>.CreateFromString(rm, BlockFaceShader.Value);
                 shaderFace.CreateSamplerForPixelShader(0, new SamplerStateDescription

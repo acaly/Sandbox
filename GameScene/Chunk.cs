@@ -23,6 +23,8 @@ namespace Sandbox.GameScene
         public Vector4 col;
         [RenderDataElement(Format.R32G32B32A32_Float, "TEXCOORD", 3)]
         public Vector4 aooffset;
+        [RenderDataElement(Format.R32G32B32A32_Float, "TEXCOORD", 4)]
+        public Vector4 lightness;
     }
 
     class Chunk : GridStaticEntity, DictionaryValueInit<World>
@@ -230,6 +232,31 @@ namespace Sandbox.GameScene
             return ret;
         }
 
+        //TODO do not use original version. manually inline
+
+        private BlockData GetBlockDataAt(WorldCoord coord)
+        {
+            return GetBlockDataAt(coord.x, coord.y, coord.z);
+        }
+
+        private bool MakeAOInner(WorldCoord coord, WorldCoord.Direction2 dir)
+        {
+            return GetBlockDataAt(coord.WithOffset(dir.coord)).BlockId != 0 ||
+                GetBlockDataAt(coord.WithOffset(dir.Devide(0).coord)).BlockId != 0 ||
+                GetBlockDataAt(coord.WithOffset(dir.Devide(1).coord)).BlockId != 0;
+        }
+
+        private Vector4 GetAOOffset(WorldCoord coord, int face)
+        {
+            WorldCoord.Direction1 dir = new WorldCoord.Direction1(face);
+            var offsetCoord = coord.WithOffset(dir.coord);
+            return AmbientOcculsionTexture.MakeAOOffset(
+                MakeAOInner(offsetCoord, dir.UVPN(0)),
+                MakeAOInner(offsetCoord, dir.UVPN(1)),
+                MakeAOInner(offsetCoord, dir.UVPN(2)),
+                MakeAOInner(offsetCoord, dir.UVPN(3)));
+        }
+
         private Vector4 GetAOOffset(int x, int y, int z, int face)
         {
             switch (face)
@@ -274,6 +301,11 @@ namespace Sandbox.GameScene
             return new Vector4();
         }
 
+        private bool IsNormalCubeBeside(WorldCoord coord, WorldCoord.Direction1 offset)
+        {
+            return IsNormalCubeBeside(coord.x, coord.y, coord.z, offset.coord.x, offset.coord.y, offset.coord.z);
+        }
+
         private Vector4 GetColorForLightness(int l)
         {
             if (l == 13)
@@ -287,58 +319,90 @@ namespace Sandbox.GameScene
             }
         }
 
+        private Vector4 GetColorFromInt(int color)
+        {
+            int x = color & 255;
+            int y = color >> 8 & 255;
+            int z = color >> 16 & 255;
+            return new Vector4(z / 255.0f, y / 255.0f, x / 255.0f, 1.0f);
+        }
+
         private void AppendBlockRenderData(IRenderBuffer<BlockRenderData> buffer, int x, int y, int z)
         {
             BlockData data = GetBlock(x, y, z);
             if (data.BlockId == 0) return;
 
+            WorldCoord coord = new WorldCoord(x, y, z);
+            for (int face = 0; face < 6; ++face)
+            {
+                var faceDir = new WorldCoord.Direction1(face);
+                if (!IsNormalCubeBeside(coord, faceDir))
+                {
+                    buffer.Append(new BlockRenderData
+                    {
+                        pos = basePosition + coord.ToVector4(1.0f) + faceDir.coord.ToVector4(0) * 0.5f,
+                        col = GetColorFromInt(data.BlockColor),
+                        dir_u = 0.5f * faceDir.U().coord.ToVector4(0),
+                        dir_v = 0.5f * faceDir.V().coord.ToVector4(0),
+                        aooffset = GetAOOffset(coord, face),
+                        lightness = new Vector4(0.7f, 0.7f, 0, 0),
+                    });
+                }
+            }
+            return;
             if (!IsNormalCubeBeside(x, y, z, 0, 0, -1)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y + 0.0f, z - 0.5f, 1.0f),
-                col = GetColorForLightness(data.LightnessZN),
+                col = GetColorFromInt(data.BlockColor),
                 dir_u = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 0),
+                lightness = GetColorForLightness(data.LightnessZN),
             });
             if (!IsNormalCubeBeside(x, y, z, 0, 0, 1)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y + 0.0f, z + 0.5f, 1.0f),
-                col = GetColorForLightness(data.LightnessZP),
+                col = GetColorFromInt(data.BlockColor),
                 dir_u = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 1),
+                lightness = GetColorForLightness(data.LightnessZP),
             });
             if (!IsNormalCubeBeside(x, y, z, 0, 1, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y + 0.5f, z + 0.0f, 1.0f),
-                col = GetColorForLightness(data.LightnessYP),
+                col = GetColorFromInt(data.BlockColor),
                 dir_u = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 2),
+                lightness = GetColorForLightness(data.LightnessYP),
             });
             if (!IsNormalCubeBeside(x, y, z, 0, -1, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.0f, y - 0.5f, z + 0.0f, 1.0f),
-                col = GetColorForLightness(data.LightnessYN),
+                col = GetColorFromInt(data.BlockColor),
                 dir_u = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 dir_v = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 3),
+                lightness = GetColorForLightness(data.LightnessYN),
             });
             if (!IsNormalCubeBeside(x, y, z, -1, 0, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x - 0.5f, y + 0.0f, z + 0.0f, 1.0f),
-                col = GetColorForLightness(data.LightnessXN),
+                col = GetColorFromInt(data.BlockColor),
                 dir_u = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 4),
+                lightness = GetColorForLightness(data.LightnessXN),
             });
             if (!IsNormalCubeBeside(x, y, z, 1, 0, 0)) buffer.Append(new BlockRenderData
             {
                 pos = basePosition + new Vector4(x + 0.5f, y + 0.0f, z + 0.0f, 1.0f),
-                col = GetColorForLightness(data.LightnessXP),
+                col = GetColorFromInt(data.BlockColor),
                 dir_u = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
                 dir_v = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
                 aooffset = GetAOOffset(x, y, z, 5),
+                lightness = GetColorForLightness(data.LightnessXP),
             });
         }
 

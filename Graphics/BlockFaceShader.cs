@@ -16,6 +16,7 @@ struct VS_IN
     float4 dir_v : TEXCOORD2;
     float4 col : COLOR;
     float4 aooffset : TEXCOORD3;
+    float4 lightness : TEXCOORD4;
 };
 
 struct GS_IN
@@ -30,7 +31,6 @@ struct GS_IN
 struct PS_IN
 {
 	float4 pos : SV_POSITION;
-	//float4 tex : TEXCOORD0;
     float4 col : COLOR0;
     float4 aooffset : TEXCOORD3;
 };
@@ -50,17 +50,18 @@ GS_IN VS(VS_IN input)
 	output.pos = mul(input.pos, worldViewProj);
     output.dir_u = mul(input.dir_u, worldViewProj);
     output.dir_v = mul(input.dir_v, worldViewProj);
-	//output.col = float4(0.6, 0.8, 1.0, 1.0) * input.col;
     output.aooffset = input.aooffset;
 
     float3 lightdir = normalize(float3(0, 0.6, 4));
     float nDotL = saturate(0.3 + 0.9 * dot(cross(input.dir_u.xyz, input.dir_v.xyz), -lightdir));
     output.col = saturate(
         (
-            nDotL * (input.col.x) * 0.93 +
-            input.col.y * 0.43 + 0.07
+            nDotL * (input.lightness.x) * 1.2 +
+            input.lightness.y * 0.6 + 0.07
         ) * 1.2
-        * float4(0.4, 1.2, 0.0, 1.0) );
+        * input.col * 1.3 );
+    //output.col = saturate(nDotL * float4(0.4, 1.2, 0.0, 1.0));
+    //output.col = saturate(nDotL * input.col * 1.2);
 
 	return output;
 }

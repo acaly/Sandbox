@@ -8,6 +8,8 @@ namespace Sandbox.GameScene
 {
     class LightingManager
     {
+        public const int LightnessMax = 15;
+
         public LightingManager(World world, int x, int y)
         {
             this.world = world;
@@ -29,8 +31,6 @@ namespace Sandbox.GameScene
             //calculate the lightness
             LightnessCalculator lc = new LightnessCalculator(this);
             lc.Calculate();
-
-            var time = clock.ElapsedMilliseconds;
 
             //apply lightness to world
             var itor = new World.BlockIterator(world,
@@ -69,6 +69,8 @@ namespace Sandbox.GameScene
                     itor.SetBlock(block);
                 }
             }
+
+            var time = clock.ElapsedMilliseconds;
         }
 
 
@@ -392,8 +394,6 @@ namespace Sandbox.GameScene
         {
             private LightingManager manager;
 
-            private const int LightnessMax = 15;
-
             private List<LightnessSpread>[] spreadQueue;
             private List<RectSpreadInfo> spreadBuffer = new List<RectSpreadInfo>() { new RectSpreadInfo() }; //reserve index 0
             private RectInfo[] rectInfo;
@@ -465,7 +465,7 @@ namespace Sandbox.GameScene
                 }
             }
 
-            public int GetLightnessOnBlock(int x, int y, int z)
+            public byte GetLightnessOnBlock(int x, int y, int z)
             {
                 if (x < manager.generatedRange.xmin || x > manager.generatedRange.xmax ||
                     y < manager.generatedRange.ymin || y > manager.generatedRange.ymax ||
@@ -489,7 +489,7 @@ namespace Sandbox.GameScene
                     int value = CalculateIntensityInRect(s.srcOffset, s.intensity, offsetX, offsetY, offsetZ, s.reduceZ);
                     if (ret < value) ret = value;
                 }
-                return ret;
+                return (byte)ret;
             }
 
             private IEnumerable<RectSpreadInfo> GetAllSpreadInfoForRect(int index)
@@ -548,6 +548,7 @@ namespace Sandbox.GameScene
                 //check queue
                 {
                     //higher ones have been applied, lower ones can't have same intensity
+                    //TODO this check causes O(n^2) time complexity
                     for (int i = indexInQueue + 1; i < spreadQueue[spread.intensity].Count; ++i)
                     {
                         var spreadInfo = spreadQueue[spread.intensity][i];
