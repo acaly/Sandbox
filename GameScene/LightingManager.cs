@@ -484,8 +484,6 @@ namespace Sandbox.GameScene
                 int ret = 0;
                 foreach (var s in GetAllSpreadInfoForRect(rectIndex))
                 {
-                    //int value = CalculateIntensityInRect(s.intensity,
-                    //    s.offsetX - offsetX, s.offsetY - offsetY, s.offsetZ - offsetZ, s.reduce);
                     int value = CalculateIntensityInRect(s.srcOffset, s.intensity, offsetX, offsetY, offsetZ, s.reduceZ);
                     if (ret < value) ret = value;
                 }

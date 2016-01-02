@@ -248,31 +248,40 @@ namespace Sandbox.GameScene
             return new Vector4(z / 255.0f, y / 255.0f, x / 255.0f, 1.0f);
         }
 
-        private float[] sunlightOnFace = new float[] { 0.60f, 0.52f, 0.42f, 0.40f, 1.0f, 0.3f };
+        private float[] sunlightOnFace = new float[] { 0.60f, 0.52f, 0.42f, 0.40f, 1.0f, 0.3f, 0.39f };
 
-        private float MakeLightnessForVertex(int face, byte a, byte b, byte c, byte d)
+        private float LightnessByteToFloat(int face, byte b)
         {
-            float ret;
-            if (b == 0 && c == 0)
+            if (b == 0) return 0.0f;
+            float ret = b / 16.0f;
+            if (b == 14)
             {
-                ret = a / 16.0f;
-            }
-            else
-            {
-                int count = 1, sum = a;
-                if (b != 0) { ++count; sum += b; }
-                if (c != 0) { ++count; sum += c; }
-                if (d != 0) { ++count; sum += d; }
-                ret = sum / 16.0f / count;
-            }
-            if (a == 14)
-            {
-                //TODO really sunlight?
                 ret *= sunlightOnFace[face];
             }
             else
             {
+                ret *= sunlightOnFace[6];
+            }
+            return ret;
+        }
 
+        private float MakeLightnessForVertex(int face, byte ba, byte bb, byte bc, byte bd)
+        {
+            float a = LightnessByteToFloat(face, ba), b = LightnessByteToFloat(face, bb),
+                c = LightnessByteToFloat(face, bc), d = LightnessByteToFloat(face, bd);
+            float ret;
+            if (b == 0.0f && c == 0.0f)
+            {
+                return a;
+            }
+            else
+            {
+                int count = 1;
+                float sum = a;
+                if (b != 0) { ++count; sum += b; }
+                if (c != 0) { ++count; sum += c; }
+                if (d != 0) { ++count; sum += d; }
+                ret = sum / count;
             }
             return ret * 1.2f;
         }
