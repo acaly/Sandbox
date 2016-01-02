@@ -400,6 +400,9 @@ namespace Sandbox.GameScene
 
             private int xsize, ysize;
 
+            private int currentLightness;
+            private int[,] rectLastSpread; //index + 1
+
             private struct LightnessSpread
             {
                 public int rectIndex;
@@ -407,6 +410,7 @@ namespace Sandbox.GameScene
                 public int direction; //source direction
                 public int intensity;
                 public int reduceZ;
+                public int nextSpreadOfRect;
             }
 
             private struct RectSpreadInfo
@@ -434,11 +438,14 @@ namespace Sandbox.GameScene
                 //init
                 this.spreadQueue = new List<LightnessSpread>[LightnessMax];
                 this.rectInfo = new RectInfo[manager.rectangles.Count];
+                this.rectLastSpread = new int[manager.rectangles.Count, LightnessMax];
 
                 for (int i = 0; i < spreadQueue.Length; ++i)
                 {
                     spreadQueue[i] = new List<LightnessSpread>();
                 }
+
+                currentLightness = 0;
 
                 //start the top rects
                 LightnessSpread ls = new LightnessSpread();
@@ -458,6 +465,9 @@ namespace Sandbox.GameScene
                 //finish queue
                 for (int i = spreadQueue.Length - 1; i >= 0; --i)
                 {
+                    currentLightness = i;
+                    //TODO update last
+
                     for (int j = 0; j < spreadQueue[i].Count; ++j)
                     {
                         SpreadInRect(spreadQueue[i][j], j);
@@ -505,7 +515,22 @@ namespace Sandbox.GameScene
             private void Append(LightnessSpread spread)
             {
                 if (spread.intensity <= 0) return;
-                spreadQueue[spread.intensity].Add(spread);
+                var theList = spreadQueue[spread.intensity];
+                var index = theList.Count;
+                theList.Add(spread);
+
+                var lastIndex = rectLastSpread[spread.rectIndex, spread.intensity] - 1;
+
+                //update chain
+                if (lastIndex != -1)
+                {
+                    var theSpread = theList[lastIndex];
+                    theSpread.nextSpreadOfRect = index + 1;
+                    theList[lastIndex] = theSpread;
+                }
+
+                //update lastIndex
+                rectLastSpread[spread.rectIndex, spread.intensity] = index + 1;
             }
 
             private struct SpreadToRectInfo
@@ -547,15 +572,30 @@ namespace Sandbox.GameScene
                 {
                     //higher ones have been applied, lower ones can't have same intensity
                     //TODO this check causes O(n^2) time complexity
-                    for (int i = indexInQueue + 1; i < spreadQueue[spread.intensity].Count; ++i)
+                    //for (int i = indexInQueue + 1; i < spreadQueue[spread.intensity].Count; ++i)
+                    //{
+                    //    var spreadInfo = spreadQueue[spread.intensity][i];
+                    //    if (spreadInfo.rectIndex != spread.rectIndex) continue;
+                    //    var spreadLightnessAtSrc = CalculateIntensityInRect(spread.src, spread.intensity, spreadInfo.src, reduceZ);
+                    //    if (spreadLightnessAtSrc >= spread.intensity)
+                    //    {
+                    //        return;
+                    //    }
+                    //}
+                    int index = spread.nextSpreadOfRect;
+                    while (index != 0)
                     {
-                        var spreadInfo = spreadQueue[spread.intensity][i];
-                        if (spreadInfo.rectIndex != spread.rectIndex) continue;
+                        var spreadInfo = spreadQueue[spread.intensity][index - 1];
+                        if (spreadInfo.rectIndex != spread.rectIndex)
+                        {
+                            continue;
+                        }
                         var spreadLightnessAtSrc = CalculateIntensityInRect(spread.src, spread.intensity, spreadInfo.src, reduceZ);
                         if (spreadLightnessAtSrc >= spread.intensity)
                         {
                             return;
                         }
+                        index = spreadInfo.nextSpreadOfRect;
                     }
                 }
 
