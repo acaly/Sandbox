@@ -23,7 +23,7 @@ namespace Sandbox.GameScene
         public Vector4 col;
         [RenderDataElement(Format.R32G32B32A32_Float, "TEXCOORD", 3)]
         public Vector4 aooffset;
-        [RenderDataElement(Format.R32G32B32A32_Float, "TEXCOORD", 4)]
+        [RenderDataElement(Format.R32G32B32A32_Float, "COLOR", 1)]
         public Vector4 lightness;
     }
 
@@ -195,46 +195,6 @@ namespace Sandbox.GameScene
 
         private List<Box> collisionList;
 
-        //private BlockData GetBlockDataAt(int x, int y, int z)
-        //{
-        //    if (x >= 0 && x < w && y >= 0 && y < w && z >= 0 && z < h)
-        //    {
-        //        return GetBlock(x, y, z);
-        //    }
-        //    return world.GetBlock(x + baseCoord.x, y + baseCoord.y, z + baseCoord.z);
-        //}
-        //
-        //private bool IsNormalCubeBeside(int x, int y, int z, int offsetX, int offsetY, int offsetZ)
-        //{
-        //    return GetBlockDataAt(x + offsetX, y + offsetY, z + offsetZ).BlockId != 0;
-        //}
-        //
-        //private bool MakeAOInner(int x, int y, int z, int dx, int dy, int dz)
-        //{
-        //    bool ret = false;
-        //    if (dx == 0)
-        //    {
-        //        ret = GetBlockDataAt(x, y + dy, z + dz).BlockId != 0 ||
-        //            GetBlockDataAt(x, y, z + dz).BlockId != 0 ||
-        //            GetBlockDataAt(x, y + dy, z).BlockId != 0;
-        //    }
-        //    else if (dy == 0)
-        //    {
-        //        ret = GetBlockDataAt(x + dx, y, z + dz).BlockId != 0 ||
-        //            GetBlockDataAt(x, y, z + dz).BlockId != 0 ||
-        //            GetBlockDataAt(x + dx, y, z).BlockId != 0;
-        //    }
-        //    else if (dz == 0)
-        //    {
-        //        ret = GetBlockDataAt(x + dx, y + dy, z).BlockId != 0 ||
-        //            GetBlockDataAt(x, y + dy, z).BlockId != 0 ||
-        //            GetBlockDataAt(x + dx, y, z).BlockId != 0;
-        //    }
-        //    return ret;
-        //}
-
-        //TODO do not use original version. manually inline
-
         private BlockData GetBlockDataAt(WorldCoord coord)
         {
             if (coord.x >= 0 && coord.x < w && coord.y >= 0 && coord.y < w && coord.z >= 0 && coord.z < h)
@@ -262,50 +222,6 @@ namespace Sandbox.GameScene
                 MakeAOInner(offsetCoord, dir.UVPN(3)));
         }
 
-        //private Vector4 GetAOOffset(int x, int y, int z, int face)
-        //{
-        //    switch (face)
-        //    {
-        //        case 5:
-        //            return AmbientOcculsionTexture.MakeAOOffset(
-        //                MakeAOInner(x + 1, y, z, 0, 1, 1),
-        //                MakeAOInner(x + 1, y, z, 0, -1, 1),
-        //                MakeAOInner(x + 1, y, z, 0, 1, -1),
-        //                MakeAOInner(x + 1, y, z, 0, -1, -1));
-        //        case 4:
-        //            return AmbientOcculsionTexture.MakeAOOffset(
-        //                MakeAOInner(x - 1, y, z, 0, 1, 1),
-        //                MakeAOInner(x - 1, y, z, 0, 1, -1),
-        //                MakeAOInner(x - 1, y, z, 0, -1, 1),
-        //                MakeAOInner(x - 1, y, z, 0, -1, -1));
-        //        case 2:
-        //            return AmbientOcculsionTexture.MakeAOOffset(
-        //                MakeAOInner(x, y + 1, z, 1, 0, 1),
-        //                MakeAOInner(x, y + 1, z, 1, 0, -1),
-        //                MakeAOInner(x, y + 1, z, -1, 0, 1),
-        //                MakeAOInner(x, y + 1, z, -1, 0, -1));
-        //        case 3:
-        //            return AmbientOcculsionTexture.MakeAOOffset(
-        //                MakeAOInner(x, y - 1, z, 1, 0, 1),
-        //                MakeAOInner(x, y - 1, z, -1, 0, 1),
-        //                MakeAOInner(x, y - 1, z, 1, 0, -1),
-        //                MakeAOInner(x, y - 1, z, -1, 0, -1));
-        //        case 1:
-        //            return AmbientOcculsionTexture.MakeAOOffset(
-        //                MakeAOInner(x, y, z + 1, 1, 1, 0),
-        //                MakeAOInner(x, y, z + 1, -1, 1, 0),
-        //                MakeAOInner(x, y, z + 1, 1, -1, 0),
-        //                MakeAOInner(x, y, z + 1, -1, -1, 0));
-        //        case 0:
-        //            return AmbientOcculsionTexture.MakeAOOffset(
-        //                MakeAOInner(x, y, z - 1, 1, 1, 0),
-        //                MakeAOInner(x, y, z - 1, 1, -1, 0),
-        //                MakeAOInner(x, y, z - 1, -1, 1, 0),
-        //                MakeAOInner(x, y, z - 1, -1, -1, 0));
-        //    }
-        //    return new Vector4();
-        //}
-
         private bool IsNormalCubeBeside(WorldCoord coord, WorldCoord.Direction1 offset)
         {
             return GetBlockDataAt(coord.WithOffset(offset.coord)).BlockId != 0;
@@ -332,6 +248,81 @@ namespace Sandbox.GameScene
             return new Vector4(z / 255.0f, y / 255.0f, x / 255.0f, 1.0f);
         }
 
+        private float[] sunlightOnFace = new float[] { 0.60f, 0.52f, 0.42f, 0.40f, 1.0f, 0.3f };
+
+        private float MakeLightnessForVertex(int face, byte a, byte b, byte c, byte d)
+        {
+            float ret;
+            if (b == 0 && c == 0)
+            {
+                ret = a / 16.0f;
+            }
+            else
+            {
+                int count = 1, sum = a;
+                if (b != 0) { ++count; sum += b; }
+                if (c != 0) { ++count; sum += c; }
+                if (d != 0) { ++count; sum += d; }
+                ret = sum / 16.0f / count;
+            }
+            if (a == 14)
+            {
+                //TODO really sunlight?
+                ret *= sunlightOnFace[face];
+            }
+            else
+            {
+
+            }
+            return ret * 1.2f;
+        }
+
+        private byte GetLightnessOnFace(WorldCoord coord, int face)
+        {
+            var block = GetBlockDataAt(coord);
+            if (block.BlockId == 0 || GetBlockDataAt(coord.WithOffset(new WorldCoord.Direction1(face).coord)).BlockId != 0)
+            {
+                return 0;
+            }
+            switch (face)
+            {
+                case 0:
+                    return (byte)(block.LightnessXP + 1);
+                case 1:
+                    return (byte)(block.LightnessXN + 1);
+                case 2:
+                    return (byte)(block.LightnessYP + 1);
+                case 3:
+                    return (byte)(block.LightnessYN + 1);
+                case 4:
+                    return (byte)(block.LightnessZP + 1);
+                case 5:
+                    return (byte)(block.LightnessZN + 1);
+            }
+            return 0;
+        }
+
+        private float GetLightnessForVertex(WorldCoord coord, int face, int index)
+        {
+            WorldCoord.Direction2 vertex = new WorldCoord.Direction1(face).UVPN(index);
+            return MakeLightnessForVertex(face,
+                GetLightnessOnFace(coord, face),
+                GetLightnessOnFace(coord.WithOffset(vertex.Devide(0).coord), face),
+                GetLightnessOnFace(coord.WithOffset(vertex.Devide(1).coord), face),
+                GetLightnessOnFace(coord.WithOffset(vertex.coord), face)
+                );
+        }
+
+        private Vector4 GetLightnessVec(WorldCoord coord, int face)
+        {
+            return new Vector4(
+                GetLightnessForVertex(coord, face, 0),
+                GetLightnessForVertex(coord, face, 1),
+                GetLightnessForVertex(coord, face, 2),
+                GetLightnessForVertex(coord, face, 3)
+                );
+        }
+
         private void AppendBlockRenderData(IRenderBuffer<BlockRenderData> buffer, int x, int y, int z)
         {
             BlockData data = GetBlock(x, y, z);
@@ -350,7 +341,7 @@ namespace Sandbox.GameScene
                         dir_u = 0.5f * faceDir.U().coord.ToVector4(0),
                         dir_v = 0.5f * faceDir.V().coord.ToVector4(0),
                         aooffset = GetAOOffset(coord, face),
-                        lightness = new Vector4(0.7f, 0.7f, 0, 0),
+                        lightness = GetLightnessVec(coord, face),//new Vector4(0.7f, 0.7f, 0, 0),
                     });
                 }
             }

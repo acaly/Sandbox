@@ -52,8 +52,8 @@ namespace Sandbox
                 MainForm = rm.Form;
 
                 //{
-                NatsuTerrain.CreateWorld(theWorld, @"blocks.natsu", 5);
-                //NatsuTerrain.CreateWorld(theWorld, @"E:\1.schematic.natsu", 5);
+                //NatsuTerrain.CreateWorld(theWorld, @"blocks.natsu", 5);
+                NatsuTerrain.CreateWorld(theWorld, @"E:\1.schematic.natsu", 5);
                 //NatsuTerrain.CreateWorld(theWorld, @"E:\2.schematic.natsu", 5);
                 //}
                 //{

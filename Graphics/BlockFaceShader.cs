@@ -14,9 +14,9 @@ struct VS_IN
     float4 pos : POSITION;
     float4 dir_u : TEXCOORD1;
     float4 dir_v : TEXCOORD2;
-    float4 col : COLOR;
+    float4 col : COLOR0;
     float4 aooffset : TEXCOORD3;
-    float4 lightness : TEXCOORD4;
+    float4 lightness : COLOR1;
 };
 
 struct GS_IN
@@ -24,8 +24,9 @@ struct GS_IN
     float4 pos : SV_POSITION;
     float4 dir_u : TEXCOORD1;
     float4 dir_v : TEXCOORD2;
-    float4 col : COLOR;
+    float4 col : COLOR0;
     float4 aooffset : TEXCOORD3;
+    float4 lightness : COLOR1;
 };
 
 struct PS_IN
@@ -33,6 +34,8 @@ struct PS_IN
 	float4 pos : SV_POSITION;
     float4 col : COLOR0;
     float4 aooffset : TEXCOORD3;
+    float4 lightness : COLOR1;
+    float4 pointCoord : TEXCOORD4;
 };
 
 cbuffer VS_CONSTANT_BUFFER
@@ -54,14 +57,16 @@ GS_IN VS(VS_IN input)
 
     float3 lightdir = normalize(float3(0, 0.6, 4));
     float nDotL = saturate(0.3 + 0.9 * dot(cross(input.dir_u.xyz, input.dir_v.xyz), -lightdir));
-    output.col = saturate(
-        (
-            nDotL * (input.lightness.x) * 1.2 +
-            input.lightness.y * 0.6 + 0.07
-        ) * 1.2
-        * input.col * 1.3 );
+    //output.col = saturate(
+    //    (
+    //        nDotL * (input.lightness.x) * 1.2 +
+    //        input.lightness.y * 0.6 + 0.07
+    //    ) * 1.2
+    //    * input.col * 1.3 );
     //output.col = saturate(nDotL * float4(0.4, 1.2, 0.0, 1.0));
     //output.col = saturate(nDotL * input.col * 1.2);
+    output.col = input.col;
+    output.lightness = input.lightness;
 
 	return output;
 }
@@ -79,10 +84,15 @@ void GS(point GS_IN input[1], inout TriangleStream<PS_IN> triStream)
     point_np.col = input[0].col;
     point_nn.col = input[0].col;
 
-    //point_pp.tex = float4(1, 1, 0, 0);
-    //point_pn.tex = float4(1, 0, 0, 0);
-    //point_np.tex = float4(0, 1, 0, 0);
-    //point_nn.tex = float4(0, 0, 0, 0);
+    point_pp.lightness = input[0].lightness;
+    point_pn.lightness = input[0].lightness;
+    point_np.lightness = input[0].lightness;
+    point_nn.lightness = input[0].lightness;
+
+    point_pp.pointCoord = float4(1, 1, 0, 0);
+    point_pn.pointCoord = float4(1, 0, 0, 0);
+    point_np.pointCoord = float4(0, 1, 0, 0);
+    point_nn.pointCoord = float4(0, 0, 0, 0);
 
     point_pp.pos = input[0].pos + input[0].dir_u + input[0].dir_v;
     point_pn.pos = input[0].pos + input[0].dir_u - input[0].dir_v;
@@ -111,9 +121,19 @@ float4 PS(PS_IN input) : SV_Target
     //coord.y = floor(coord.y) / 16;
     
     //float4 col = faceTexture.Sample(MeshTextureSampler, coord);
-    float4 aocolor = faceTexture.Sample(MeshTextureSampler, input.aooffset.xy);
+
     float4 ret = input.col;
+
+    float4 aocolor = faceTexture.Sample(MeshTextureSampler, input.aooffset.xy);
     ret = ret * (1 - aocolor.r * 0.2);
+
+    float lightness = 
+        input.lightness.x * input.pointCoord.x * input.pointCoord.y + 
+        input.lightness.y * input.pointCoord.x * (1 - input.pointCoord.y) +
+        input.lightness.z * (1 - input.pointCoord.x) * input.pointCoord.y + 
+        input.lightness.w * (1 - input.pointCoord.x) * (1 - input.pointCoord.y);
+    ret = ret * lightness * 1.2;
+
     return ret;
 }
 ";
