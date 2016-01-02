@@ -273,7 +273,7 @@ namespace Sandbox.GameScene
 
             public BlockData GetBlockOffset(int x, int y, int z)
             {
-                if (z == currentZ)
+                if (z == 0)
                 {
                     int internalX = x + currentInternalX, internalY = y + currentInternalY;
                     if (internalX >= 0 && internalX < ChunkWidth && internalY >= 0 && internalY < ChunkWidth)
@@ -284,7 +284,7 @@ namespace Sandbox.GameScene
                     else
                     {
                         //in another chunk (slow)
-                        return world.GetBlock(currentChunkX + internalX, currentChunkY + internalY, z + currentZ);
+                        return world.GetBlock(currentChunkX + internalX, currentChunkY + internalY, currentZ);
                     }
                 }
                 else
