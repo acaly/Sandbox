@@ -147,13 +147,14 @@ namespace Sandbox.GameScene
 
             if (hasCollision)
             {
+                var coord = new WorldCoord(x, y, z);
                 if (
-                    IsNormalCubeBeside(x, y, z, 1, 0, 0) &&
-                    IsNormalCubeBeside(x, y, z, -1, 0, 0) &&
-                    IsNormalCubeBeside(x, y, z, 0, 1, 0) &&
-                    IsNormalCubeBeside(x, y, z, 0, -1, 0) &&
-                    IsNormalCubeBeside(x, y, z, 0, 0, 1) &&
-                    IsNormalCubeBeside(x, y, z, 0, 0, -1)
+                    IsNormalCubeBeside(coord, new WorldCoord.Direction1(0)) &&
+                    IsNormalCubeBeside(coord, new WorldCoord.Direction1(1)) &&
+                    IsNormalCubeBeside(coord, new WorldCoord.Direction1(2)) &&
+                    IsNormalCubeBeside(coord, new WorldCoord.Direction1(3)) &&
+                    IsNormalCubeBeside(coord, new WorldCoord.Direction1(4)) &&
+                    IsNormalCubeBeside(coord, new WorldCoord.Direction1(5))
                     )
                 {
                     //TODO add to another array?
@@ -194,49 +195,53 @@ namespace Sandbox.GameScene
 
         private List<Box> collisionList;
 
-        private BlockData GetBlockDataAt(int x, int y, int z)
-        {
-            if (x >= 0 && x < w && y >= 0 && y < w && z >= 0 && z < h)
-            {
-                return GetBlock(x, y, z);
-            }
-            return world.GetBlock(x + baseCoord.x, y + baseCoord.y, z + baseCoord.z);
-        }
-
-        private bool IsNormalCubeBeside(int x, int y, int z, int offsetX, int offsetY, int offsetZ)
-        {
-            return GetBlockDataAt(x + offsetX, y + offsetY, z + offsetZ).BlockId != 0;
-        }
-
-        private bool MakeAOInner(int x, int y, int z, int dx, int dy, int dz)
-        {
-            bool ret = false;
-            if (dx == 0)
-            {
-                ret = GetBlockDataAt(x, y + dy, z + dz).BlockId != 0 ||
-                    GetBlockDataAt(x, y, z + dz).BlockId != 0 ||
-                    GetBlockDataAt(x, y + dy, z).BlockId != 0;
-            }
-            else if (dy == 0)
-            {
-                ret = GetBlockDataAt(x + dx, y, z + dz).BlockId != 0 ||
-                    GetBlockDataAt(x, y, z + dz).BlockId != 0 ||
-                    GetBlockDataAt(x + dx, y, z).BlockId != 0;
-            }
-            else if (dz == 0)
-            {
-                ret = GetBlockDataAt(x + dx, y + dy, z).BlockId != 0 ||
-                    GetBlockDataAt(x, y + dy, z).BlockId != 0 ||
-                    GetBlockDataAt(x + dx, y, z).BlockId != 0;
-            }
-            return ret;
-        }
+        //private BlockData GetBlockDataAt(int x, int y, int z)
+        //{
+        //    if (x >= 0 && x < w && y >= 0 && y < w && z >= 0 && z < h)
+        //    {
+        //        return GetBlock(x, y, z);
+        //    }
+        //    return world.GetBlock(x + baseCoord.x, y + baseCoord.y, z + baseCoord.z);
+        //}
+        //
+        //private bool IsNormalCubeBeside(int x, int y, int z, int offsetX, int offsetY, int offsetZ)
+        //{
+        //    return GetBlockDataAt(x + offsetX, y + offsetY, z + offsetZ).BlockId != 0;
+        //}
+        //
+        //private bool MakeAOInner(int x, int y, int z, int dx, int dy, int dz)
+        //{
+        //    bool ret = false;
+        //    if (dx == 0)
+        //    {
+        //        ret = GetBlockDataAt(x, y + dy, z + dz).BlockId != 0 ||
+        //            GetBlockDataAt(x, y, z + dz).BlockId != 0 ||
+        //            GetBlockDataAt(x, y + dy, z).BlockId != 0;
+        //    }
+        //    else if (dy == 0)
+        //    {
+        //        ret = GetBlockDataAt(x + dx, y, z + dz).BlockId != 0 ||
+        //            GetBlockDataAt(x, y, z + dz).BlockId != 0 ||
+        //            GetBlockDataAt(x + dx, y, z).BlockId != 0;
+        //    }
+        //    else if (dz == 0)
+        //    {
+        //        ret = GetBlockDataAt(x + dx, y + dy, z).BlockId != 0 ||
+        //            GetBlockDataAt(x, y + dy, z).BlockId != 0 ||
+        //            GetBlockDataAt(x + dx, y, z).BlockId != 0;
+        //    }
+        //    return ret;
+        //}
 
         //TODO do not use original version. manually inline
 
         private BlockData GetBlockDataAt(WorldCoord coord)
         {
-            return GetBlockDataAt(coord.x, coord.y, coord.z);
+            if (coord.x >= 0 && coord.x < w && coord.y >= 0 && coord.y < w && coord.z >= 0 && coord.z < h)
+            {
+                return GetBlock(coord.x, coord.y, coord.z);
+            }
+            return world.GetBlock(coord.x + baseCoord.x, coord.y + baseCoord.y, coord.z + baseCoord.z);
         }
 
         private bool MakeAOInner(WorldCoord coord, WorldCoord.Direction2 dir)
@@ -257,53 +262,53 @@ namespace Sandbox.GameScene
                 MakeAOInner(offsetCoord, dir.UVPN(3)));
         }
 
-        private Vector4 GetAOOffset(int x, int y, int z, int face)
-        {
-            switch (face)
-            {
-                case 5:
-                    return AmbientOcculsionTexture.MakeAOOffset(
-                        MakeAOInner(x + 1, y, z, 0, 1, 1),
-                        MakeAOInner(x + 1, y, z, 0, -1, 1),
-                        MakeAOInner(x + 1, y, z, 0, 1, -1),
-                        MakeAOInner(x + 1, y, z, 0, -1, -1));
-                case 4:
-                    return AmbientOcculsionTexture.MakeAOOffset(
-                        MakeAOInner(x - 1, y, z, 0, 1, 1),
-                        MakeAOInner(x - 1, y, z, 0, 1, -1),
-                        MakeAOInner(x - 1, y, z, 0, -1, 1),
-                        MakeAOInner(x - 1, y, z, 0, -1, -1));
-                case 2:
-                    return AmbientOcculsionTexture.MakeAOOffset(
-                        MakeAOInner(x, y + 1, z, 1, 0, 1),
-                        MakeAOInner(x, y + 1, z, 1, 0, -1),
-                        MakeAOInner(x, y + 1, z, -1, 0, 1),
-                        MakeAOInner(x, y + 1, z, -1, 0, -1));
-                case 3:
-                    return AmbientOcculsionTexture.MakeAOOffset(
-                        MakeAOInner(x, y - 1, z, 1, 0, 1),
-                        MakeAOInner(x, y - 1, z, -1, 0, 1),
-                        MakeAOInner(x, y - 1, z, 1, 0, -1),
-                        MakeAOInner(x, y - 1, z, -1, 0, -1));
-                case 1:
-                    return AmbientOcculsionTexture.MakeAOOffset(
-                        MakeAOInner(x, y, z + 1, 1, 1, 0),
-                        MakeAOInner(x, y, z + 1, -1, 1, 0),
-                        MakeAOInner(x, y, z + 1, 1, -1, 0),
-                        MakeAOInner(x, y, z + 1, -1, -1, 0));
-                case 0:
-                    return AmbientOcculsionTexture.MakeAOOffset(
-                        MakeAOInner(x, y, z - 1, 1, 1, 0),
-                        MakeAOInner(x, y, z - 1, 1, -1, 0),
-                        MakeAOInner(x, y, z - 1, -1, 1, 0),
-                        MakeAOInner(x, y, z - 1, -1, -1, 0));
-            }
-            return new Vector4();
-        }
+        //private Vector4 GetAOOffset(int x, int y, int z, int face)
+        //{
+        //    switch (face)
+        //    {
+        //        case 5:
+        //            return AmbientOcculsionTexture.MakeAOOffset(
+        //                MakeAOInner(x + 1, y, z, 0, 1, 1),
+        //                MakeAOInner(x + 1, y, z, 0, -1, 1),
+        //                MakeAOInner(x + 1, y, z, 0, 1, -1),
+        //                MakeAOInner(x + 1, y, z, 0, -1, -1));
+        //        case 4:
+        //            return AmbientOcculsionTexture.MakeAOOffset(
+        //                MakeAOInner(x - 1, y, z, 0, 1, 1),
+        //                MakeAOInner(x - 1, y, z, 0, 1, -1),
+        //                MakeAOInner(x - 1, y, z, 0, -1, 1),
+        //                MakeAOInner(x - 1, y, z, 0, -1, -1));
+        //        case 2:
+        //            return AmbientOcculsionTexture.MakeAOOffset(
+        //                MakeAOInner(x, y + 1, z, 1, 0, 1),
+        //                MakeAOInner(x, y + 1, z, 1, 0, -1),
+        //                MakeAOInner(x, y + 1, z, -1, 0, 1),
+        //                MakeAOInner(x, y + 1, z, -1, 0, -1));
+        //        case 3:
+        //            return AmbientOcculsionTexture.MakeAOOffset(
+        //                MakeAOInner(x, y - 1, z, 1, 0, 1),
+        //                MakeAOInner(x, y - 1, z, -1, 0, 1),
+        //                MakeAOInner(x, y - 1, z, 1, 0, -1),
+        //                MakeAOInner(x, y - 1, z, -1, 0, -1));
+        //        case 1:
+        //            return AmbientOcculsionTexture.MakeAOOffset(
+        //                MakeAOInner(x, y, z + 1, 1, 1, 0),
+        //                MakeAOInner(x, y, z + 1, -1, 1, 0),
+        //                MakeAOInner(x, y, z + 1, 1, -1, 0),
+        //                MakeAOInner(x, y, z + 1, -1, -1, 0));
+        //        case 0:
+        //            return AmbientOcculsionTexture.MakeAOOffset(
+        //                MakeAOInner(x, y, z - 1, 1, 1, 0),
+        //                MakeAOInner(x, y, z - 1, 1, -1, 0),
+        //                MakeAOInner(x, y, z - 1, -1, 1, 0),
+        //                MakeAOInner(x, y, z - 1, -1, -1, 0));
+        //    }
+        //    return new Vector4();
+        //}
 
         private bool IsNormalCubeBeside(WorldCoord coord, WorldCoord.Direction1 offset)
         {
-            return IsNormalCubeBeside(coord.x, coord.y, coord.z, offset.coord.x, offset.coord.y, offset.coord.z);
+            return GetBlockDataAt(coord.WithOffset(offset.coord)).BlockId != 0;
         }
 
         private Vector4 GetColorForLightness(int l)
@@ -349,61 +354,6 @@ namespace Sandbox.GameScene
                     });
                 }
             }
-            return;
-            if (!IsNormalCubeBeside(x, y, z, 0, 0, -1)) buffer.Append(new BlockRenderData
-            {
-                pos = basePosition + new Vector4(x + 0.0f, y + 0.0f, z - 0.5f, 1.0f),
-                col = GetColorFromInt(data.BlockColor),
-                dir_u = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
-                dir_v = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
-                aooffset = GetAOOffset(x, y, z, 0),
-                lightness = GetColorForLightness(data.LightnessZN),
-            });
-            if (!IsNormalCubeBeside(x, y, z, 0, 0, 1)) buffer.Append(new BlockRenderData
-            {
-                pos = basePosition + new Vector4(x + 0.0f, y + 0.0f, z + 0.5f, 1.0f),
-                col = GetColorFromInt(data.BlockColor),
-                dir_u = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
-                dir_v = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
-                aooffset = GetAOOffset(x, y, z, 1),
-                lightness = GetColorForLightness(data.LightnessZP),
-            });
-            if (!IsNormalCubeBeside(x, y, z, 0, 1, 0)) buffer.Append(new BlockRenderData
-            {
-                pos = basePosition + new Vector4(x + 0.0f, y + 0.5f, z + 0.0f, 1.0f),
-                col = GetColorFromInt(data.BlockColor),
-                dir_u = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
-                dir_v = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
-                aooffset = GetAOOffset(x, y, z, 2),
-                lightness = GetColorForLightness(data.LightnessYP),
-            });
-            if (!IsNormalCubeBeside(x, y, z, 0, -1, 0)) buffer.Append(new BlockRenderData
-            {
-                pos = basePosition + new Vector4(x + 0.0f, y - 0.5f, z + 0.0f, 1.0f),
-                col = GetColorFromInt(data.BlockColor),
-                dir_u = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
-                dir_v = new Vector4(0.5f, 0.0f, 0.0f, 0.0f),
-                aooffset = GetAOOffset(x, y, z, 3),
-                lightness = GetColorForLightness(data.LightnessYN),
-            });
-            if (!IsNormalCubeBeside(x, y, z, -1, 0, 0)) buffer.Append(new BlockRenderData
-            {
-                pos = basePosition + new Vector4(x - 0.5f, y + 0.0f, z + 0.0f, 1.0f),
-                col = GetColorFromInt(data.BlockColor),
-                dir_u = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
-                dir_v = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
-                aooffset = GetAOOffset(x, y, z, 4),
-                lightness = GetColorForLightness(data.LightnessXN),
-            });
-            if (!IsNormalCubeBeside(x, y, z, 1, 0, 0)) buffer.Append(new BlockRenderData
-            {
-                pos = basePosition + new Vector4(x + 0.5f, y + 0.0f, z + 0.0f, 1.0f),
-                col = GetColorFromInt(data.BlockColor),
-                dir_u = new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
-                dir_v = new Vector4(0.0f, 0.5f, 0.0f, 0.0f),
-                aooffset = GetAOOffset(x, y, z, 5),
-                lightness = GetColorForLightness(data.LightnessXP),
-            });
         }
 
         public void FlushCollision()
