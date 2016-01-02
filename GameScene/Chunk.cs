@@ -81,6 +81,11 @@ namespace Sandbox.GameScene
 
         public int GetBlockIndex(int x, int y, int z)
         {
+            return x + y * w + GetLayerOffset(z);
+        }
+
+        public int GetOrCreateBlockIndex(int x, int y, int z)
+        {
             return x + y * w + GetOrCreateLayerOffset(z);
         }
 

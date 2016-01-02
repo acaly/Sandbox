@@ -11,11 +11,11 @@ namespace Sandbox.Terrain
     //Natsu-Maboroshi's format. Taken from Minecraft.
     class NatsuTerrain
     {
-        private static Dictionary<string, int> colorMap;
+        private static Dictionary<int, int> colorMap;
 
         static NatsuTerrain()
         {
-            colorMap = new Dictionary<string, int>();
+            colorMap = new Dictionary<int, int>();
             var lines = File.ReadAllLines("minecraft_palette.txt");
             foreach (var line in lines)
             {
@@ -24,16 +24,18 @@ namespace Sandbox.Terrain
                     continue;
                 }
                 var fields = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                colorMap.Add(fields[0], int.Parse(fields[3]) | int.Parse(fields[2]) << 8 | int.Parse(fields[1]) << 16);
+                var block = fields[0].Split(':');
+                colorMap.Add(int.Parse(block[0]) << 8 | int.Parse(block[1]),
+                    int.Parse(fields[3]) | int.Parse(fields[2]) << 8 | int.Parse(fields[1]) << 16);
             }
         }
 
         private static int GetColor(int blockId, int meta)
         {
-            string key = blockId + ":" + meta;
-            if (colorMap.ContainsKey(key))
+            int block = blockId << 8 | meta;
+            if (colorMap.ContainsKey(block))
             {
-                return colorMap[key];
+                return colorMap[block];
             }
             return 0;
         }

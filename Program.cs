@@ -93,7 +93,7 @@ namespace Sandbox
                 }
 
                 LightingManager lighting = new LightingManager(theWorld, 0, 0);
-                //return;
+                return;
                 
                 var shaderFace = Shader<VertexConstData>.CreateFromString(rm, BlockFaceShader.Value);
                 shaderFace.CreateSamplerForPixelShader(0, new SamplerStateDescription
