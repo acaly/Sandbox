@@ -63,15 +63,15 @@ namespace Sandbox
                 //}
                 if (false)
                 {
-                    for (int x = -2; x <= 2; ++x)
+                    for (int x = -8; x <= 8; ++x)
                     {
-                        for (int y = -2; y <= 2; ++y)
+                        for (int y = -8; y <= 8; ++y)
                         {
-                            theWorld.SetBlock(x, y, x + 2, new BlockData { BlockId = 1 });
-                            if (false && x == 0 && y == 0)
+                            theWorld.SetBlock(x, y, 0, new BlockData { BlockId = 1, BlockColor = 16777215 });
+                            if (true && x >= -2 && x <= 2 && y >= -2 && y <= 2)
                             {
-                                for (int z = 0; z < 4; ++z)
-                                    theWorld.SetBlock(x, y, z, new BlockData { BlockId = 1 });
+                                //for (int z = 0; z < 4; ++z)
+                                    theWorld.SetBlock(x, y, 1, new BlockData { BlockId = 1, BlockColor = 16777215 });
                             }
                             //if (x == -20 || x == 20 || y == -20 || y == 20)
                             //{

@@ -49,7 +49,7 @@ namespace Sandbox.Graphics
                                 if (pix_xx < 0) pix_xx = 0; if (pix_xx >= cellSize) pix_xx = cellSize - 1;
                                 int pix_yy = pix_y;
                                 if (pix_yy < 0) pix_yy = 0; if (pix_yy >= cellSize) pix_yy = cellSize - 1;
-                                float depth = functions[index]((pix_xx + 0.5f) / cellSize, (pix_yy + 0.5f) / cellSize);
+                                float depth = Interpolate(index, (pix_xx + 0.5f) / cellSize, (pix_yy + 0.5f) / cellSize);
                                 bitmap.SetPixel(pix_x + cellBorder + offset_x, pix_y + cellBorder + offset_y, 
                                     SystemColor.FromArgb((int)(depth * 255), 0, 0));
                             }
@@ -71,92 +71,15 @@ namespace Sandbox.Graphics
             return d;
         }
 
-        //index bits:
-        //8 2
-        //4 1
-        private static Func<float, float, float>[] functions = new Func<float, float, float>[]
+        private static float Interpolate(int index, float x, float y)
         {
-            //0 0 
-            //0 0
-            delegate(float a, float b) {
-                return 0.0f;
-            },
-            //0 0
-            //0 1
-            delegate(float a, float b) {
-                return a + b <= 1 ? 0 : (a + b) - 1;
-            },
-            //0 2
-            //0 0
-            delegate(float a, float b) {
-                return a + (1 - b) <= 1.0f ? 0 : (a + (1 - b)) - 1;
-            },
-            //0 2
-            //0 1
-            delegate(float a, float b) {
-                return a;
-            },
-            //0 0
-            //4 0
-            delegate(float a, float b) {
-                return (1 - a) + b <= 1 ? 0 : ((1 - a) + b) - 1;
-            },
-            //0 0
-            //4 1
-            delegate(float a, float b) {
-                return b;
-            },
-            //0 2
-            //4 0
-            delegate(float a, float b) {
-                return a + b < 1 ? (a + b) : 2 - (a + b);
-            },
-            //0 2
-            //4 1
-            delegate(float a, float b) {
-                return Math.Max(a, b);
-            },
-            //8 0
-            //0 0
-            delegate(float a, float b) {
-                return (1 - a) + (1 - b) <= 1 ? 0 : ((1 - a) + (1 - b)) - 1;
-            },
-            //8 0
-            //0 1
-            delegate(float a, float b) {
-                return (1 - a) + b < 1 ? ((1 - a) + b) : 2 - ((1 - a) + b);
-            },
-            //8 2
-            //0 0
-            delegate(float a, float b) {
-                return (1 - b);
-            },
-            //8 2
-            //0 1
-            delegate(float a, float b) {
-                return Math.Max(a, 1 - b);
-            },
-            //8 0
-            //4 0
-            delegate(float a, float b) {
-                return (1 - a);
-            },
-            //8 0
-            //4 1
-            delegate(float a, float b) {
-                return Math.Max(1 - a, b);
-            },
-            //8 2
-            //4 0
-            delegate(float a, float b) {
-                return Math.Max(1 - a, 1 - b);
-            },
-            //8 2
-            //4 1
-            delegate(float a, float b) {
-                return 1.0f;
-            },
-        };
+            int pp = (index & 1) != 0 ? 1 : 0;
+            int pn = (index & 2) != 0 ? 1 : 0;
+            int np = (index & 4) != 0 ? 1 : 0;
+            int nn = (index & 8) != 0 ? 1 : 0;
+            return pp * x * y + pn * x * (1 - y) +
+                np * (1 - x) * y + nn * (1 - x) * (1 - y);
+        }
 
         public void Dispose()
         {

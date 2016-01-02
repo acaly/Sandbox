@@ -252,6 +252,7 @@ namespace Sandbox.GameScene
 
         private float LightnessByteToFloat(int face, byte b)
         {
+            //return sunlightOnFace[face] * 0.8f;
             if (b == 0) return 0.0f;
             float ret = b / 16.0f;
             if (b == 14)
@@ -272,7 +273,7 @@ namespace Sandbox.GameScene
             float ret;
             if (b == 0.0f && c == 0.0f)
             {
-                return a;
+                ret = a;
             }
             else
             {
