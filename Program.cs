@@ -8,6 +8,7 @@ using SharpDX.Direct3D11;
 using SharpDX.Windows;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -41,8 +42,14 @@ namespace Sandbox
         [STAThread]
         static void Main()
         {
+            List<long> times = new List<long>(20);
+            Stopwatch clock = new Stopwatch();
+            clock.Start();
+
             using (RenderManager rm = new RenderManager())
             {
+                times.Add(clock.ElapsedMilliseconds);
+
                 rm.InitDevice();
 
                 GameScene.World theWorld = new GameScene.World(rm);
@@ -51,9 +58,11 @@ namespace Sandbox
 
                 MainForm = rm.Form;
 
+                times.Add(clock.ElapsedMilliseconds);
+
                 //{
                 //NatsuTerrain.CreateWorld(theWorld, @"blocks.natsu", 5);
-                NatsuTerrain.CreateWorld(theWorld, @"E:\1.schematic.natsu", 5);
+                NatsuTerrain.CreateWorld(theWorld, @"E:\2.schematic.natsu", 5);
                 //NatsuTerrain.CreateWorld(theWorld, @"E:\2.schematic.natsu", 5);
                 //}
                 //{
@@ -92,9 +101,13 @@ namespace Sandbox
                     }
                 }
 
+                times.Add(clock.ElapsedMilliseconds);
+
                 LightingManager lighting = new LightingManager(theWorld, 0, 0);
-                return;
-                
+                //return;
+
+                times.Add(clock.ElapsedMilliseconds);
+
                 var shaderFace = Shader<VertexConstData>.CreateFromString(rm, BlockFaceShader.Value);
                 shaderFace.CreateSamplerForPixelShader(0, new SamplerStateDescription
                 {
@@ -105,6 +118,8 @@ namespace Sandbox
                 });
                 var aotexture = new AmbientOcculsionTexture(rm);
 
+                times.Add(clock.ElapsedMilliseconds);
+
                 foreach (var chunk in theWorld.chunkList)
                 {
                     chunk.FlushCollision();
@@ -113,15 +128,21 @@ namespace Sandbox
                 rdm.Flush();
                 shaderFace.SetResourceForPixelShader(0, aotexture.ResourceView);
 
+                times.Add(clock.ElapsedMilliseconds);
+
                 camera.SetForm(rm.Form);
                 theWorld.AddEntity(camera);
 
                 var proj = Matrix.PerspectiveFovLH((float)Math.PI / 4.0f, 800.0f / 600.0f, 0.1f, 1000.0f);
 
                 rm.ImmediateContext.ApplyShader(shaderFace);
+                
+                //return;
 
                 EventWaitHandle physicsStartEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
                 EventWaitHandle physicsFinishEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+
+                times.Add(clock.ElapsedMilliseconds);
 
                 //Thread physicsThread = new Thread(new ThreadStart(delegate
                 //{
