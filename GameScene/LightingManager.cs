@@ -466,7 +466,6 @@ namespace Sandbox.GameScene
                 for (int i = spreadQueue.Length - 1; i >= 0; --i)
                 {
                     currentLightness = i;
-                    //TODO update last
 
                     for (int j = 0; j < spreadQueue[i].Count; ++j)
                     {
@@ -497,7 +496,7 @@ namespace Sandbox.GameScene
                     int value = CalculateIntensityInRect(s.srcOffset, s.intensity, offsetX, offsetY, offsetZ, s.reduceZ);
                     if (ret < value) ret = value;
                 }
-                return (byte)ret;
+                return (byte)(ret + 1);
             }
 
             private IEnumerable<RectSpreadInfo> GetAllSpreadInfoForRect(int index)
@@ -571,25 +570,10 @@ namespace Sandbox.GameScene
                 //check queue
                 {
                     //higher ones have been applied, lower ones can't have same intensity
-                    //TODO this check causes O(n^2) time complexity
-                    //for (int i = indexInQueue + 1; i < spreadQueue[spread.intensity].Count; ++i)
-                    //{
-                    //    var spreadInfo = spreadQueue[spread.intensity][i];
-                    //    if (spreadInfo.rectIndex != spread.rectIndex) continue;
-                    //    var spreadLightnessAtSrc = CalculateIntensityInRect(spread.src, spread.intensity, spreadInfo.src, reduceZ);
-                    //    if (spreadLightnessAtSrc >= spread.intensity)
-                    //    {
-                    //        return;
-                    //    }
-                    //}
                     int index = spread.nextSpreadOfRect;
                     while (index != 0)
                     {
                         var spreadInfo = spreadQueue[spread.intensity][index - 1];
-                        if (spreadInfo.rectIndex != spread.rectIndex)
-                        {
-                            continue;
-                        }
                         var spreadLightnessAtSrc = CalculateIntensityInRect(spread.src, spread.intensity, spreadInfo.src, reduceZ);
                         if (spreadLightnessAtSrc >= spread.intensity)
                         {

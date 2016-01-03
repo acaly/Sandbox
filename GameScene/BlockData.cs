@@ -10,6 +10,7 @@ namespace Sandbox.GameScene
     struct BlockData
     {
         public int BlockId;
+        //the lightness fields stores value of lightness+1. while 0 indicates that the face is not rendered
         public byte LightnessXP, LightnessXN, LightnessYP, LightnessYN, LightnessZP, LightnessZN;
         public int BlockColor;
 

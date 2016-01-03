@@ -295,24 +295,20 @@ namespace Sandbox.GameScene
         private byte GetLightnessOnFace(WorldCoord coord, int face)
         {
             var block = GetBlockDataAt(coord);
-            if (block.BlockId == 0 || GetBlockDataAt(coord.WithOffset(new WorldCoord.Direction1(face).coord)).BlockId != 0)
-            {
-                return 0;
-            }
             switch (face)
             {
                 case 0:
-                    return (byte)(block.LightnessXP + 1);
+                    return (byte)(block.LightnessXP);
                 case 1:
-                    return (byte)(block.LightnessXN + 1);
+                    return (byte)(block.LightnessXN);
                 case 2:
-                    return (byte)(block.LightnessYP + 1);
+                    return (byte)(block.LightnessYP);
                 case 3:
-                    return (byte)(block.LightnessYN + 1);
+                    return (byte)(block.LightnessYN);
                 case 4:
-                    return (byte)(block.LightnessZP + 1);
+                    return (byte)(block.LightnessZP);
                 case 5:
-                    return (byte)(block.LightnessZN + 1);
+                    return (byte)(block.LightnessZN);
             }
             return 0;
         }
@@ -356,7 +352,7 @@ namespace Sandbox.GameScene
                         dir_u = 0.5f * faceDir.U().coord.ToVector4(0),
                         dir_v = 0.5f * faceDir.V().coord.ToVector4(0),
                         aooffset = GetAOOffset(coord, face),
-                        lightness = GetLightnessVec(coord, face),//new Vector4(0.7f, 0.7f, 0, 0),
+                        lightness = GetLightnessVec(coord, face),
                     });
                 }
             }
