@@ -52,6 +52,12 @@ namespace Sandbox.Font
             }
         }
 
+        public void NewLine()
+        {
+            PenX = X;
+            PenY += face.LineHeight;
+        }
+
         public void FinishChar()
         {
             PenX += currentAdvance;

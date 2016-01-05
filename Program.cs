@@ -167,7 +167,7 @@ namespace Sandbox
                 var context = device.ImmediateContext;
 
                 FontFace.CreateFonts(rm);
-                var gameSceneGui = new GameSceneGui(gui);
+                var gameSceneGui = new GameSceneGui(gui, camera);
 
                 RenderLoopHelper.Run(rm, false, delegate(RenderContext frame)
                 {
