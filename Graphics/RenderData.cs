@@ -68,7 +68,7 @@ namespace Sandbox.Graphics
             public int offset;
         }
 
-        private static InputElement[] CreateElementsFromType()
+        public static InputElement[] CreateLayoutElementsFromType()
         {
             Type type = typeof(T);
             List<InputElementFieldInfo> fieldList = new List<InputElementFieldInfo>();
@@ -130,7 +130,7 @@ namespace Sandbox.Graphics
             {
                 throw new Exception();
             }
-            this.layout = new InputLayout(device, shader.VertexSignature, CreateElementsFromType());
+            this.layout = new InputLayout(device, shader.VertexSignature, CreateLayoutElementsFromType());
         }
 
         public void SetupDeviceContext(DeviceContext context)

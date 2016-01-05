@@ -79,6 +79,22 @@ namespace Sandbox.Graphics
             }
         }
 
+        public int TargetWidth
+        {
+            get
+            {
+                return form.ClientSize.Width;
+            }
+        }
+
+        public int TargetHeight
+        {
+            get
+            {
+                return form.ClientSize.Height;
+            }
+        }
+
         private SwapChainDescription desc;
         private RenderForm form;
         private Device device;

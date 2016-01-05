@@ -1,5 +1,7 @@
-﻿using Sandbox.GameScene;
+﻿using Sandbox.Font;
+using Sandbox.GameScene;
 using Sandbox.Graphics;
+using Sandbox.Gui;
 using Sandbox.Terrain;
 using SharpDX;
 using SharpDX.D3DCompiler;
@@ -15,6 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Format = SharpDX.DXGI.Format;
+using TextRenderer = Sandbox.Font.StaticTextRenderer;
 
 /* Speed test (device setup, draw the cube)
 loop: 68.2
@@ -61,16 +64,16 @@ namespace Sandbox
                 times.Add(clock.ElapsedMilliseconds);
 
                 //{
-                //NatsuTerrain.CreateWorld(theWorld, @"blocks.natsu", 5);
-                NatsuTerrain.CreateWorld(theWorld, @"E:\2.schematic.natsu", 5);
+                NatsuTerrain.CreateWorld(theWorld, @"blocks.natsu", 5);
                 //NatsuTerrain.CreateWorld(theWorld, @"E:\2.schematic.natsu", 5);
+                //NatsuTerrain.CreateWorld(theWorld, @"E:\1.schematic.natsu", 5);
                 //}
                 //{
                 //    AscTerrain terr = new AscTerrain(@"blocks_asc.asc", 1000, 1000);
                 //    terr.Resample(4);
                 //    terr.CreateWorld(theWorld, 000, 000, 250, 250);
                 //}
-                if (false)
+                if (true)
                 {
                     for (int x = -8; x <= 8; ++x)
                     {
@@ -135,8 +138,8 @@ namespace Sandbox
 
                 var proj = Matrix.PerspectiveFovLH((float)Math.PI / 4.0f, 800.0f / 600.0f, 0.1f, 1000.0f);
 
-                rm.ImmediateContext.ApplyShader(shaderFace);
-                
+                GuiEnvironment gui = new GuiEnvironment(rm);
+
                 //return;
 
                 EventWaitHandle physicsStartEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
@@ -158,18 +161,39 @@ namespace Sandbox
                 //GC.Collect();
 
                 //rm.ImmediateContext.SetRenderData(rdm.renderData);
+
+                ///////////////////////////////////////////////
+                var device = rm.Device;
+                var context = device.ImmediateContext;
+
+                FontFace.CreateFonts(rm);
+                var gameSceneGui = new GameSceneGui(gui);
+
                 RenderLoopHelper.Run(rm, false, delegate(RenderContext frame)
                 {
+                    //--- logic---
+
                     camera.Step(); //can't be paralleled with physics
 
                     //physicsStartEvent.Set();
                     theWorld.StepPhysics(1.0f / 60);
+
+                    //--- render world ---
+                    rm.ImmediateContext.ApplyShader(shaderFace);
 
                     shaderFace.buffer.transform = Matrix.Multiply(camera.GetViewMatrix(), proj);
                     shaderFace.buffer.transform.Transpose();
                     frame.UpdateShaderConstant(shaderFace);
 
                     rdm.Render(frame);
+
+                    //--- render gui ---
+
+                    gui.BeginEnvironment();
+                    gameSceneGui.Render();
+                    gui.EndEnvironment();
+
+                    //--- present ---
 
                     frame.Present(true);
 

@@ -65,7 +65,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Font\FontCharInfo.cs" />
+    <Compile Include="Font\FontFace.cs" />
+    <Compile Include="Font\NumberTextRenderer.cs" />
     <Compile Include="Font\SharpFontTest.cs" />
+    <Compile Include="Font\StaticTextRenderer.cs" />
+    <Compile Include="Font\TextRenderRegion.cs" />
     <Compile Include="GameScene\BlockData.cs" />
     <Compile Include="GameScene\Camera.cs" />
     <Compile Include="GameScene\Chunk.cs" />
@@ -84,6 +89,9 @@
     <Compile Include="Graphics\RenderLoopHelper.cs" />
     <Compile Include="Graphics\RenderManager.cs" />
     <Compile Include="Graphics\Shader.cs" />
+    <Compile Include="Gui\GuiEnvironment.cs" />
+    <Compile Include="Gui\GuiTexture.cs" />
+    <Compile Include="Gui\GameSceneGui.cs" />
     <Compile Include="MultiCube.cs" />
     <Compile Include="Physics\AdditionalCollision.cs" />
     <Compile Include="Physics\Box.cs" />
