@@ -53,9 +53,10 @@ namespace Sandbox.Terrain
                 y = BitConverter.ToInt32(intBuffer, 4);
                 z = BitConverter.ToInt32(intBuffer, 8);
 
-                blockdata = new byte[fs.Length];
+                int size = x * y * z;
+                blockdata = new byte[size];
                 fs.Read(blockdata, 0, blockdata.Length);
-                blockmeta = new byte[fs.Length];
+                blockmeta = new byte[size];
                 if (fs.Read(blockmeta, 0, blockmeta.Length) <= 0)
                 {
                     blockmeta = null;

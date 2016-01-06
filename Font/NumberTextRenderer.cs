@@ -55,6 +55,12 @@ namespace Sandbox.Font
         private int FormatNumber(int value)
         {
             //first fill buffer in reverse order
+            bool appendMinus = false;
+            if (value < 0)
+            {
+                value = -value;
+                appendMinus = true;
+            }
             int index = 0;
             while (value != 0)
             {
@@ -64,6 +70,10 @@ namespace Sandbox.Font
             if (index == 0)
             {
                 buffer[index++] = 0;
+            }
+            if (appendMinus)
+            {
+                buffer[index++] = 11;
             }
             int ret = index;
             int exchange = 0;

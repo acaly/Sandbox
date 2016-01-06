@@ -47,13 +47,13 @@ namespace Sandbox.Font
             currentAdvance = advance;
             if (PenX + advance > X + W)
             {
-                PenX = X;
-                PenY += face.LineHeight;
+                NewLine();
             }
         }
 
         public void NewLine()
         {
+            //TODO should check h
             PenX = X;
             PenY += face.LineHeight;
         }
