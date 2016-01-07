@@ -35,7 +35,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>Sandbox.Program</StartupObject>
+    <StartupObject>Sandbox.GameScene.Lighting.LightingTest</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="SharpDX">
@@ -76,6 +76,9 @@
     <Compile Include="GameScene\Chunk.cs" />
     <Compile Include="GameScene\CoordDictionary.cs" />
     <Compile Include="GameScene\LightingManager.cs" />
+    <Compile Include="GameScene\Lighting\Geometry.cs" />
+    <Compile Include="GameScene\Lighting\LightingTest.cs" />
+    <Compile Include="GameScene\Lighting\RectProvider.cs" />
     <Compile Include="GameScene\MovableGridObject.cs" />
     <Compile Include="GameScene\World.cs" />
     <Compile Include="GameScene\WorldCoord.cs" />
@@ -126,6 +129,7 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="packages\SharpDX.2.6.3\build\SharpDX.targets" Condition="Exists('packages\SharpDX.2.6.3\build\SharpDX.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
