@@ -8,12 +8,39 @@ namespace Sandbox.GameScene.Lighting
 {
     class LightingTest
     {
+        private struct Spread
+        {
+            CommonRectRef rect;
+            int dir;
+            bool pn;
+            int type; //0 lightspace, 1 direct spread, 2 indirect spread
+            Geometry.Restrict3 range;
+            Geometry.Direction reduce;
+            float reduceZero;
+        }
+
+        private class LightingInit : LightingHandler<Spread>
+        {
+
+        }
+
         private static void Main()
+        {
+            RectProvider<int> provider = new RectProvider<int>();
+            provider.AddRectangles();
+            var calc = new LightingCalculator(provider);
+            LightingInit li = new LightingInit();
+            calc.Calculate(li);
+        }
+
+        private static void Main2()
         {
             RectProvider<int> rects = new RectProvider<int>();
             rects.AddRectangles();
-            var input = rects.GetRectFromRef(14);
-            var rect = input.Rect;
+
+            Geometry.Rectangle rect = new Geometry.Rectangle();
+            int data = 0;
+            rects.GetRectFromRef(new CommonRectRef { N = 14 }, ref rect, ref data);
 
             var light = new Geometry.LightInformation(new Geometry.Direction(-1, -1, -1));
             Geometry.Direction conv = new Geometry.Direction(1, 0, -1);
@@ -22,15 +49,22 @@ namespace Sandbox.GameScene.Lighting
             //var lightSpace = face.MakeLight(light);
 
             var rectinfo = Geometry.RectangleAdditionalInfo.Create();
+            var lightSpaceInfo = Geometry.LightSpaceAdditionalInfo.Create();
+
             rect.CalculateAdditionalInfo(light, rectinfo);
 
-            var srcPlane = rectinfo.Planes[4]; //z+
-            var lightSpace = srcPlane.MakeLight(light);
-            var lightSpaceInfo = Geometry.LightSpaceAdditionalInfo.Create();
-            lightSpace.CalculateAdditionalInfo(lightSpaceInfo);
+            var clock = new System.Diagnostics.Stopwatch();
+            clock.Start();
+            for (int i = 0; i < 10000; ++i) //1000->10ms, 10000->80ms
+            {
+                var srcPlane = rectinfo.Planes[4]; //z+
+                var lightSpace = srcPlane.MakeLight(light);
+                lightSpace.CalculateAdditionalInfo(lightSpaceInfo);
 
-            Geometry.PlaneRegion outputRegionProj = new Geometry.PlaneRegion();
-            lightSpace.MakeProjection(ref rect, 1, 0, false, rectinfo, lightSpaceInfo, ref outputRegionProj);
+                Geometry.PlaneRegion outputRegionProj = new Geometry.PlaneRegion();
+                lightSpace.MakeProjection(ref rect, 1, 0, false, rectinfo, lightSpaceInfo, ref outputRegionProj);
+            }
+            var time = clock.ElapsedMilliseconds;
         }
     }
 }

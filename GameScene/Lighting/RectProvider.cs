@@ -6,59 +6,51 @@ using System.Threading.Tasks;
 
 namespace Sandbox.GameScene.Lighting
 {
-    interface IRectangleData<T, TRef>
-    {
-        Geometry.Rectangle Rect { get; set; }
-        T Tag { get; set; }
-        TRef Reference { get; }
-    }
-
     interface IRectProvider<T, TRef>
     {
-        void GetRectBeside(IRectangleData<T, TRef> rect, int side, RectProcessor<T, TRef> output);
-        IRectangleData<T, TRef> GetRectFromRef(TRef r);
+        void GetRectBeside(TRef rect, int side, RectProcessor<T, TRef> output);
+        bool GetRectFromRef(TRef r, ref Geometry.Rectangle rect, ref T data);
+        void ForEach(RectProcessor<T, TRef> output);
     }
 
     interface RectProcessor<T, TRef>
     {
-        void Process(IRectangleData<T, TRef> rect);
+        void Process(TRef rectref, ref Geometry.Rectangle rect, ref T data);
     }
 
-    class RectProvider<T> : IRectProvider<T, int>
+    struct CommonRectRef
     {
-        private class RectDataImpl : IRectangleData<T, int>
-        {
-            public RectDataImpl(int index)
-            {
-                Reference = index;
-            }
-            public Geometry.Rectangle Rect { get; set; }
-            public T Tag { get; set; }
+        public int X, Y, N;
+    }
 
-            public int Reference
-            {
-                get;
-                private set;
-            }
+    class RectProvider<T> : IRectProvider<T, CommonRectRef>
+    {
+        private struct RectData
+        {
+            public Geometry.Rectangle rect;
+            public T data;
         }
 
-        private readonly List<RectDataImpl> rectangles = new List<RectDataImpl>();
+        private readonly List<RectData> rectangles = new List<RectData>();
 
-        public void GetRectBeside(IRectangleData<T, int> rect, int side, RectProcessor<T, int> output)
+        public void GetRectBeside(CommonRectRef rect, int side, RectProcessor<T, CommonRectRef> output)
         {
             int dir = side / 2;
             int np = side & 1;
-            var rectrect = rect.Rect;
-            foreach (var irect in rectangles)
+            var rectrect = rectangles[rect.N].rect;
+            CommonRectRef rectrefOutput = new CommonRectRef();
+            for (int i = 0; i < rectangles.Count; ++i)
             {
-                var irectrect = irect.Rect;
+                var irectrect = rectangles[i].rect;
                 if (np == 0) //positive side
                 {
                     if (irectrect.Range.MinN(dir) == rectrect.Range.MaxN(dir) &&
                         rectrect.Range[dir + 1].Intersect(irectrect.Range[dir + 1]) &&
                         rectrect.Range[dir + 2].Intersect(irectrect.Range[dir + 2]))
                     {
-                        output.Process(irect);
+                        rectrefOutput.N = i;
+                        var data = rectangles[i].data; //TODO
+                        output.Process(rectrefOutput, ref irectrect, ref data);
                     }
                 }
                 else //negative side
@@ -67,15 +59,12 @@ namespace Sandbox.GameScene.Lighting
                         rectrect.Range[dir + 1].Intersect(irectrect.Range[dir + 1]) &&
                         rectrect.Range[dir + 2].Intersect(irectrect.Range[dir + 2]))
                     {
-                        output.Process(irect);
+                        rectrefOutput.N = i;
+                        var data = rectangles[i].data; //TODO
+                        output.Process(rectrefOutput, ref irectrect, ref data);
                     }
                 }
             }
-        }
-
-        public IRectangleData<T, int> GetRectFromRef(int r)
-        {
-            return rectangles[r];
         }
 
         public void AddRectangles()
@@ -86,9 +75,9 @@ namespace Sandbox.GameScene.Lighting
                 {
                     for (int iz = -1; iz <= 1; ++iz)
                     {
-                        rectangles.Add(new RectDataImpl(rectangles.Count)
+                        rectangles.Add(new RectData
                         {
-                            Rect = new Geometry.Rectangle
+                            rect = new Geometry.Rectangle
                             {
                                 Range = new Geometry.Restrict3
                                 {
@@ -101,6 +90,29 @@ namespace Sandbox.GameScene.Lighting
                     }
                 }
             }
+        }
+
+        public void ForEach(RectProcessor<T, CommonRectRef> output)
+        {
+            CommonRectRef rectrefOutput = new CommonRectRef();
+            for (int i = 0; i < rectangles.Count; ++i)
+            {
+                var irectrect = rectangles[i].rect;
+                rectrefOutput.N = i;
+                var data = rectangles[i].data; //TODO
+                output.Process(rectrefOutput, ref irectrect, ref data);
+            }
+        }
+
+        public bool GetRectFromRef(CommonRectRef r, ref Geometry.Rectangle rect, ref T data)
+        {
+            if (r.N < rectangles.Count)
+            {
+                rect = rectangles[r.N].rect;
+                data = rectangles[r.N].data;
+                return true;
+            }
+            return false;
         }
     }
 }

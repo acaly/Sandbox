@@ -77,6 +77,7 @@
     <Compile Include="GameScene\CoordDictionary.cs" />
     <Compile Include="GameScene\LightingManager.cs" />
     <Compile Include="GameScene\Lighting\Geometry.cs" />
+    <Compile Include="GameScene\Lighting\LightingCalculator.cs" />
     <Compile Include="GameScene\Lighting\LightingTest.cs" />
     <Compile Include="GameScene\Lighting\RectProvider.cs" />
     <Compile Include="GameScene\MovableGridObject.cs" />
