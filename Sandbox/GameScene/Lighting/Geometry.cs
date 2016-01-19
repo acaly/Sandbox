@@ -221,6 +221,14 @@ namespace Sandbox.GameScene.Lighting.Geometry
     //    }
     //}
 
+    struct ProjectionBentSpread
+    {
+        public Direction LinePosition;
+        public Direction Range;
+        public Direction Distance;
+        public int LineDir;
+    }
+
     struct LightSpaceAdditionalInfo
     {
         public Restrict3[] RestrictBorder;
@@ -315,8 +323,9 @@ namespace Sandbox.GameScene.Lighting.Geometry
         /// <returns></returns>
         public Restrict3 GetRestrictBorderInfo(int side, bool pn)
         {
+            float theBorder = Range[side].GetBorder(pn);
             Direction point = new Direction();
-            point[side] = Range[side].GetBorder(pn);
+            point[side] = theBorder;
             
             float dir1MaxForDir2, dir1MinForDir2, dir2MaxForDir1, dir2MinForDir1;
             
@@ -353,6 +362,88 @@ namespace Sandbox.GameScene.Lighting.Geometry
                 Max = Math.Min(dir2Max, Range[side + 2].Max),
                 Min = Math.Max(dir2Min, Range[side + 2].Min),
             };
+            return ret;
+        }
+
+        //given a face of LightSpace and a region of its projection, calculate the minimum distance from the LightSpace face to a given point
+        public float GetNearestDistance(LightSpaceAdditionalInfo additionalInfo, int lightFaceDir, ref PlaneRegion region, Direction point)
+        {
+            bool lightFacePN = Light.DotAxisWithNN(region.Plane.Dir, lightFaceDir);
+            if (!region.Plane.PN) lightFacePN = !lightFacePN; //TODO use a xor
+
+            float ret = float.MaxValue;
+            for (int i = 0; i < 6; ++i)
+            {
+                ret = Math.Min(ret, GetDistance(point, Light.GetXYZFromXXYYZZ(GetBorderPoint(i), region.Plane)));
+            }
+
+            var xxyyzz = Light.GetXXYYZZFromXYZ(point);
+            {
+                Direction position = new Direction();
+                position[region.Plane.Dir + 1] = xxyyzz[region.Plane.Dir + 1];
+
+                position[region.Plane.Dir + 2] = Range.MaxN(region.Plane.Dir + 2);
+                Light.ConvertSide(ref position, region.Plane.Dir);
+                ret = Math.Min(ret, GetDistance(point, Light.GetXYZFromXXYYZZ(position, region.Plane)));
+
+                position[region.Plane.Dir + 2] = Range.MinN(region.Plane.Dir + 2);
+                Light.ConvertSide(ref position, region.Plane.Dir);
+                ret = Math.Min(ret, GetDistance(point, Light.GetXYZFromXXYYZZ(position, region.Plane)));
+
+                position[region.Plane.Dir] = Range.MaxN(region.Plane.Dir);
+                Light.ConvertSide(ref position, region.Plane.Dir + 2);
+                ret = Math.Min(ret, GetDistance(point, Light.GetXYZFromXXYYZZ(position, region.Plane)));
+
+                position[region.Plane.Dir] = Range.MinN(region.Plane.Dir);
+                Light.ConvertSide(ref position, region.Plane.Dir + 2);
+                ret = Math.Min(ret, GetDistance(point, Light.GetXYZFromXXYYZZ(position, region.Plane)));
+            }
+            {
+                Direction position = new Direction();
+                position[region.Plane.Dir + 2] = xxyyzz[region.Plane.Dir + 2];
+
+                position[region.Plane.Dir + 1] = Range.MaxN(region.Plane.Dir + 1);
+                Light.ConvertSide(ref position, region.Plane.Dir);
+                ret = Math.Min(ret, GetDistance(point, Light.GetXYZFromXXYYZZ(position, region.Plane)));
+
+                position[region.Plane.Dir + 1] = Range.MinN(region.Plane.Dir + 1);
+                Light.ConvertSide(ref position, region.Plane.Dir);
+                ret = Math.Min(ret, GetDistance(point, Light.GetXYZFromXXYYZZ(position, region.Plane)));
+
+                position[region.Plane.Dir] = Range.MaxN(region.Plane.Dir);
+                Light.ConvertSide(ref position, region.Plane.Dir + 1);
+                ret = Math.Min(ret, GetDistance(point, Light.GetXYZFromXXYYZZ(position, region.Plane)));
+
+                position[region.Plane.Dir] = Range.MinN(region.Plane.Dir);
+                Light.ConvertSide(ref position, region.Plane.Dir + 1);
+                ret = Math.Min(ret, GetDistance(point, Light.GetXYZFromXXYYZZ(position, region.Plane)));
+            }
+            return 0;
+        }
+
+        public static void GetProjectionBentSpread(LightInformation light, ref PlaneRegion projRegion, int projFaceDir, float projPosition,
+            ref PlaneRegion faceRegion,
+            int bentBorderDir, int bentBorderPN, ref ProjectionBentSpread result)
+        {
+            Direction linePos = new Direction();
+
+        }
+
+        private float GetDistance(Direction p1, Direction p2)
+        {
+            return Math.Abs(p1.X - p2.X) + Math.Abs(p1.Y - p2.Y) + Math.Abs(p1.Z - p2.Z);
+        }
+
+        //get a border point (which is a line in space) of this LightSpace in xxyyzz
+        private Direction GetBorderPoint(int index)
+        {
+            int dir1, dir2, dir3;
+            bool pn1, pn2;
+            Light.GetBorderPointForLightSpace(index, out dir1, out pn1, out dir2, out pn2, out dir3);
+            Direction ret = new Direction();
+            ret[dir1] = Range[dir1].GetBorder(pn1);
+            ret[dir2] = Range[dir2].GetBorder(pn2);
+            Light.ConvertSide(ref ret, dir3);
             return ret;
         }
     }
@@ -423,7 +514,7 @@ namespace Sandbox.GameScene.Lighting.Geometry
     struct PlaneRegion
     {
         public Plane Plane;
-        public Restrict3 Range;
+        public Restrict3 Range; //in XXYYZZ
 
         public LightSpace MakeLight(LightInformation light)
         {
@@ -433,11 +524,22 @@ namespace Sandbox.GameScene.Lighting.Geometry
 
     class LightInformation
     {
+        private struct BorderInfo
+        {
+            public int dir1, dir2, dir3;
+            public bool pn1, pn2;
+        }
+
+        //should be normalized
         public Direction Dir;
+
+        //should be normalized
         private Direction xx, yy, zz;
 
         //used in ConvertSide
         private Restrict3 restrictCoefficient;
+
+        private BorderInfo[] borderInfo;
 
         public Direction AxisCross(int dir)
         {
@@ -482,6 +584,26 @@ namespace Sandbox.GameScene.Lighting.Geometry
                 restrictCoefficient.RestrictC.Min = (float)coZX;
                 restrictCoefficient.RestrictC.Max = (float)coZY;
             }
+            borderInfo = new BorderInfo[]
+            {
+                CalculateBorderInfo(0, true),
+                CalculateBorderInfo(0, false),
+                CalculateBorderInfo(1, true),
+                CalculateBorderInfo(1, false),
+                CalculateBorderInfo(2, true),
+                CalculateBorderInfo(2, false),
+            };
+        }
+
+        private BorderInfo CalculateBorderInfo(int dir, bool pn)
+        {
+            BorderInfo ret = new BorderInfo();
+            ret.dir1 = dir;
+            ret.pn1 = pn;
+            ret.dir2 = dir + 1;
+            ret.pn2 = Direction.Dot(AxisCross(dir), AxisCross(dir + 1)) > 0 ? pn : !pn;
+            ret.dir3 = dir + 2;
+            return ret;
         }
 
         //modify the destSide of dir, in order to make the following three plans intersect on a single line
@@ -503,5 +625,89 @@ namespace Sandbox.GameScene.Lighting.Geometry
         {
             return AxisCross(lightFaceDir)[axisDir] * axisOffset;
         }
+
+        //get the position of a xxyyzz point (a light line) on a plane, in xyz form
+        public Direction GetXYZFromXXYYZZ(Direction xxyyzz, Plane pl)
+        {
+            //TODO check for faster method
+            var pointOnXXYYZZ = GetPointOnXXYYZZ(xxyyzz);
+            var pointOnPlane = new Direction(pl.Normal.X * pl.Position, pl.Normal.Y * pl.Position, pl.Normal.Z * pl.Position);
+
+            //  [ Point(return) - Point(pointOnPlane) ] dot Direction(pl.Normal) = 0
+            //  [ [ Point(pointOnXXYYZZ) + k * Direction(Light) ] - Point(pointOnPlane) ] dot Direction(pl.Normal) = 0
+            //  [ Point(pointOnXXYYZZ) + k * Direction(Light)  - Point(pointOnPlane) ] dot Direction(pl.Normal) = 0
+            //  [ Point(pointOnPlane) - Point(pointOnXXYYZZ) ] dot Direction(pl.Normal) = k * [ Direction(Light) dot Direction(pl.Normal) ]
+            var pppp = new Direction(pointOnPlane.X - pointOnXXYYZZ.X, pointOnPlane.Y - pointOnXXYYZZ.Y, pointOnPlane.Z - pointOnXXYYZZ.Z);
+            var k = Direction.Dot(pppp, pl.Normal) / Direction.Dot(Dir, pl.Normal);
+
+            return new Direction(
+                pointOnXXYYZZ.X + Dir.X * k,
+                pointOnXXYYZZ.Y + Dir.Y * k,
+                pointOnXXYYZZ.Z + Dir.Z * k);
+        }
+
+        private Direction GetPointOnXXYYZZ(Direction xxyyzz)
+        {
+            if (Direction.Dot(xx, yy) < 0.05f)
+            {
+                //use x, z
+                Direction pxx = GetPointOnFace(0, xxyyzz.X);
+                Direction pzz = GetPointOnFace(1, xxyyzz.Z);
+                Direction diffxxyy = new Direction(pxx.X - pzz.X, pxx.Y - pzz.Y, pxx.Z - pzz.Z);
+                var move = Direction.Cross(zz, Direction.Cross(diffxxyy, zz));
+                return new Direction(pzz.X + move.X, pzz.Y + move.Y, pzz.Z + move.Z);
+            }
+            else
+            {
+                //use x, y
+                Direction pxx = GetPointOnFace(0, xxyyzz.X);
+                Direction pyy = GetPointOnFace(1, xxyyzz.Y);
+                Direction diffxxyy = new Direction(pxx.X - pyy.X, pxx.Y - pyy.Y, pxx.Z - pyy.Z);
+                var move = Direction.Cross(yy, Direction.Cross(diffxxyy, yy));
+                return new Direction(pyy.X + move.X, pyy.Y + move.Y, pyy.Z + move.Z);
+            }
+        }
+
+        //get one point on the plane
+        private Direction GetPointOnFace(int dir, float nn)
+        {
+            var ret = AxisCross(dir);
+            ret.X *= nn;
+            ret.Y *= nn;
+            ret.Z *= nn;
+            return ret;
+        }
+
+        //get the xxyyzz form of a point
+        public Direction GetXXYYZZFromXYZ(Direction point)
+        {
+            Direction ret = new Direction();
+            Plane pl = new Plane();
+
+            pl.Normal = xx;
+            Plane.MovePlaneTo(ref pl, point);
+            ret.X = pl.Position;
+
+            pl.Normal = yy;
+            Plane.MovePlaneTo(ref pl, point);
+            ret.Y = pl.Position;
+
+            pl.Normal = zz;
+            Plane.MovePlaneTo(ref pl, point);
+            ret.Z = pl.Position;
+
+            return ret;
+        }
+
+        public void GetBorderPointForLightSpace(int index, out int dir1, out bool pn1, out int dir2, out bool pn2, out int dir3)
+        {
+            var ret = borderInfo[index];
+            dir1 = ret.dir1;
+            pn1 = ret.pn1;
+            dir2 = ret.dir2;
+            pn2 = ret.pn2;
+            dir3 = ret.dir3;
+        }
     }
+
 }

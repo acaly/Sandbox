@@ -10,7 +10,7 @@ namespace Sandbox.GameScene.Lighting
     {
         int Init(ref Geometry.Rectangle rect, ref Spread output); //return lightness (only for optimization)
         bool Check(ref Geometry.Rectangle rect, ref Spread oldSpread, ref Spread newSpread);
-        void Spread(ref Geometry.Rectangle rect, ref Spread s, List<Spread> list);
+        void SpreadSpread(ref Geometry.Rectangle rect, ref Spread s, List<Spread> list);
         void GetSpreadInfo(ref Spread spread, out CommonRectRef rect);
         float GetLightnessResult(ref Geometry.Rectangle rect, ref Spread spread, float offsetX, float offsetY, float offsetZ);
     }
@@ -23,6 +23,7 @@ namespace Sandbox.GameScene.Lighting
     interface LightnessResultAccess
     {
         float GetLightness(ref Geometry.Rectangle rect, CommonRectRef rectref, float offsetX, float offsetY, float offsetZ);
+        //TODO reset
     }
 
     class LightingCalculator

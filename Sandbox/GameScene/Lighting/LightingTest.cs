@@ -21,7 +21,30 @@ namespace Sandbox.GameScene.Lighting
 
         private class LightingInit : LightingHandler<Spread>
         {
+            public int Init(ref Geometry.Rectangle rect, ref Spread output)
+            {
+                throw new NotImplementedException();
+            }
 
+            public bool Check(ref Geometry.Rectangle rect, ref Spread oldSpread, ref Spread newSpread)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void SpreadSpread(ref Geometry.Rectangle rect, ref Spread s, List<Spread> list)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void GetSpreadInfo(ref Spread spread, out CommonRectRef rect)
+            {
+                throw new NotImplementedException();
+            }
+
+            public float GetLightnessResult(ref Geometry.Rectangle rect, ref Spread spread, float offsetX, float offsetY, float offsetZ)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private static void Main()
