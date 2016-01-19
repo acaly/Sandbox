@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace Sandbox.HLSLGen
 {
-    class IntrisicFunctions
+    //this class is referenced by name in ShaderCompiler, so don't change the name
+    class ShaderClassAttribute : Attribute
     {
     }
 }
