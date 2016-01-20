@@ -37,6 +37,14 @@ namespace Sandbox.Terrain
             {
                 return colorMap[block];
             }
+            block = blockId << 8;
+            if (colorMap.ContainsKey(block))
+            {
+                //meta not found
+                //TODO produce a warning
+                return colorMap[block];
+            }
+            //TODO produce an error
             return 0;
         }
 
