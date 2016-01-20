@@ -6,6 +6,24 @@ using System.Threading.Tasks;
 
 namespace Sandbox.GameScene.Lighting.Geometry
 {
+    struct DirHelper
+    {
+        public static int GetThirdDirection(int dir1, int dir2)
+        {
+            dir1 = dir1 % 3;
+            dir2 = dir2 % 3;
+            if (dir1 == dir2)
+            {
+                return 0 / (Math.Abs(1) - 1); //make an error
+            }
+            if (dir1 == dir2 + 1 || dir1 == dir2 - 2)
+            {
+                return dir1 + 2;
+            }
+            return dir1 + 1;
+        }
+    }
+
     struct Restrict1
     {
         public float Min, Max;
@@ -106,6 +124,16 @@ namespace Sandbox.GameScene.Lighting.Geometry
                 case 2: return RestrictC.Min;
             }
             return 0;
+        }
+
+        public Direction Max()
+        {
+            return new Direction(RestrictA.Max, RestrictB.Max, RestrictC.Max);
+        }
+
+        public Direction Min()
+        {
+            return new Direction(RestrictA.Min, RestrictB.Min, RestrictC.Min);
         }
 
         public static Restrict3 Intersection(ref Restrict3 a, ref Restrict3 b)
@@ -224,7 +252,7 @@ namespace Sandbox.GameScene.Lighting.Geometry
     struct ProjectionBentSpread
     {
         public Direction LinePosition;
-        public Direction Range;
+        public Direction Range; //3 points, min to max
         public Direction Distance;
         public int LineDir;
     }
@@ -423,10 +451,79 @@ namespace Sandbox.GameScene.Lighting.Geometry
 
         public static void GetProjectionBentSpread(LightInformation light, ref PlaneRegion projRegion, int projFaceDir, float projPosition,
             ref PlaneRegion faceRegion,
-            int bentBorderDir, int bentBorderPN, ref ProjectionBentSpread result)
+            int bentDir, bool bentPN, ref ProjectionBentSpread result)
         {
-            Direction linePos = new Direction();
+            //temp variable
+            Direction point = new Direction();
 
+            //the direction in which the line extends
+            int thirdDir = DirHelper.GetThirdDirection(faceRegion.Plane.Dir, bentDir);
+            result.LineDir = thirdDir;
+
+            //Step 1
+            //calculate LinePosition
+            point = faceRegion.Range.Max();
+            light.ConvertSide(ref point, faceRegion.Plane.Dir);
+            point[bentDir] = faceRegion.Range[bentDir].GetBorder(bentPN);
+            result.LinePosition = light.GetXYZFromXXYYZZ(point, faceRegion.Plane);
+
+            //Step 2
+            //calculate the three points on the line (saved in Direction)
+            //two of them are the border point of the border on thirdDir, the other one should be found among borders on face.Normal
+
+            //true: the reduce border is to the Max border on thirdDir(so only Max value of that border is used)
+            bool reduceBorder = !bentPN;
+            if (!light.DotAxisWithLight(thirdDir)) reduceBorder = !reduceBorder;
+            if (!light.DotAxisWithLight(bentDir)) reduceBorder = !reduceBorder;
+
+            //true: use Max border of the faceRegion (in direction face.Normal)
+            bool reduceBorderPN = reduceBorder;
+            if (!light.DotAxisWithNN(thirdDir, faceRegion.Plane.Dir)) reduceBorderPN = !reduceBorderPN;
+            
+            //use GetRestrictBorderInfo to help us (although it's not a light space)
+            LightSpace lshelper = new LightSpace { Light = light, Range = projRegion.Range };
+            var lineRange = lshelper.GetRestrictBorderInfo(faceRegion.Plane.Dir, reduceBorderPN);
+
+            Restrict1 selfRange = projRegion.Range[thirdDir];
+            float additionalPoint = lineRange[thirdDir].GetBorder(reduceBorder);
+
+            //convert xxyyzz to xyz
+            Direction resultRangeDir = new Direction();
+            point = result.LinePosition;
+            if (reduceBorder)
+            {
+                point[thirdDir] = selfRange.Min;
+                resultRangeDir.X = light.GetXYZFromXXYYZZ(point, faceRegion.Plane)[thirdDir];
+                point[thirdDir] = selfRange.Max;
+                resultRangeDir.Y = light.GetXYZFromXXYYZZ(point, faceRegion.Plane)[thirdDir];
+                point[thirdDir] = additionalPoint;
+                resultRangeDir.Z = light.GetXYZFromXXYYZZ(point, faceRegion.Plane)[thirdDir];
+            }
+            else
+            {
+                point[thirdDir] = additionalPoint;
+                resultRangeDir.X = light.GetXYZFromXXYYZZ(point, faceRegion.Plane)[thirdDir];
+                point[thirdDir] = selfRange.Min;
+                resultRangeDir.Y = light.GetXYZFromXXYYZZ(point, faceRegion.Plane)[thirdDir];
+                point[thirdDir] = selfRange.Max;
+                resultRangeDir.Z = light.GetXYZFromXXYYZZ(point, faceRegion.Plane)[thirdDir];
+            }
+            result.Range = resultRangeDir;
+
+            //Step 3
+            //calculate distance
+            point = result.LinePosition;
+
+            //TODO store additional info
+            var lsInfo = LightSpaceAdditionalInfo.Create();
+            lshelper.CalculateAdditionalInfo(lsInfo);
+
+            point[thirdDir] = resultRangeDir.X;
+            result.Distance.X = lshelper.GetNearestDistance(lsInfo, projFaceDir, ref faceRegion, point);
+            point[thirdDir] = resultRangeDir.Y;
+            result.Distance.Y = lshelper.GetNearestDistance(lsInfo, projFaceDir, ref faceRegion, point);
+            point[thirdDir] = resultRangeDir.Z;
+            result.Distance.Z = lshelper.GetNearestDistance(lsInfo, projFaceDir, ref faceRegion, point);
         }
 
         private float GetDistance(Direction p1, Direction p2)
@@ -619,6 +716,11 @@ namespace Sandbox.GameScene.Lighting.Geometry
         public bool DotAxisWithNN(int axisDir, int nndir)
         {
             return Direction.Dot(new Direction(axisDir, true), AxisCross(nndir)) > 0; //TODO cache
+        }
+
+        public bool DotAxisWithLight(int axisDir)
+        {
+            return Direction.Dot(new Direction(axisDir, true), Dir) > 0;
         }
 
         public float CalculateMoveRangeOffset(int lightFaceDir, int axisDir, float axisOffset)
