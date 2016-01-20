@@ -1,5 +1,8 @@
 ﻿using Mono.Cecil;
 using Mono.Cecil.Cil;
+using ShaderCompiler.AST;
+using ShaderCompiler.Compiler;
+using ShaderCompiler.Decompiler;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +16,20 @@ namespace ShaderCompiler
     {
         private static string CompileShader(TypeDefinition type)
         {
-            return "Hello World!";
+            ASTList ast = new ASTList();
+            StringBuilder output = new StringBuilder();
+
+            DecompilerEnvironment decomp = new DecompilerEnvironment();
+            decomp.Input = type.Methods.Single(m => m.Name == "VS");
+            decomp.Output = ast;
+            //decomp.Run();
+
+            CompilerEnvironment comp = new CompilerEnvironment();
+            comp.Input = ast;
+            comp.Output = output;
+            //comp.Run();
+
+            return output.ToString();
         }
 
         static void Main(string[] args)
