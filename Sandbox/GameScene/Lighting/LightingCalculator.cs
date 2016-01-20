@@ -20,10 +20,37 @@ namespace Sandbox.GameScene.Lighting
         
     }
 
-    interface LightnessResultAccess
+    class LightnessResultAccess<Spread>
     {
-        float GetLightness(ref Geometry.Rectangle rect, CommonRectRef rectref, float offsetX, float offsetY, float offsetZ);
-        //TODO reset
+        public readonly LightingHandler<Spread> Handler;
+
+        public LightnessResultAccess(LightingHandler<Spread> handler)
+        {
+            this.Handler = handler;
+        }
+
+        public float GetLightness(ref Geometry.Rectangle rect, CommonRectRef rectref, float offsetX, float offsetY, float offsetZ)
+        {
+            Spread spread = default(Spread);
+            //TODO for each spread, return the max
+            return Handler.GetLightnessResult(ref rect, ref spread, offsetX, offsetY, offsetZ);
+        }
+
+        //return true if it's a new rect
+        public bool AddRect(CommonRectRef rectref)
+        {
+            return false;
+        }
+
+        public void AddRectSpread(CommonRectRef rectref, ref Spread spread)
+        {
+
+        }
+
+        public void Reset()
+        {
+
+        }
     }
 
     class LightingCalculator
@@ -32,34 +59,6 @@ namespace Sandbox.GameScene.Lighting
         {
             Spread spread;
             int next;
-        }
-
-        private class LightnessResultAccessImpl<Spread> : LightnessResultAccess
-        {
-            private LightingHandler<Spread> handler;
-
-            public LightnessResultAccessImpl(LightingHandler<Spread> handler)
-            {
-                this.handler = handler;
-            }
-
-            //return true if it's a new rect
-            public bool AddRect(CommonRectRef rectref)
-            {
-                return false;
-            }
-
-            public void AddRectSpread(CommonRectRef rectref, ref Spread spread)
-            {
-
-            }
-
-            public float GetLightness(ref Geometry.Rectangle rect, CommonRectRef rectref, float offsetX, float offsetY, float offsetZ)
-            {
-                Spread spread = default(Spread);
-                //TODO for each spread, return the max
-                return handler.GetLightnessResult(ref rect, ref spread, offsetX, offsetY, offsetZ);
-            }
         }
 
         private RectProvider<int> provider;
@@ -74,9 +73,9 @@ namespace Sandbox.GameScene.Lighting
         {
             private List<Spread>[] output;
             private LightingHandler<Spread> handler;
-            private LightnessResultAccessImpl<Spread> result;
+            private LightnessResultAccess<Spread> result;
 
-            public InitCaller(List<Spread>[] output, LightingHandler<Spread> handler, LightnessResultAccessImpl<Spread> result)
+            public InitCaller(List<Spread>[] output, LightingHandler<Spread> handler, LightnessResultAccess<Spread> result)
             {
                 this.output = output;
                 this.handler = handler;
@@ -96,12 +95,12 @@ namespace Sandbox.GameScene.Lighting
             }
         }
 
-        public LightnessResultAccess Calculate<Spread>(LightingHandler<Spread> handler)
+        public void Calculate<Spread>(LightnessResultAccess<Spread> result)
         {
             var spreadQueue = new List<Spread>[LightnessMax];
-            var ret = new LightnessResultAccessImpl<Spread>(handler);
-            
-            provider.ForEach(new InitCaller<Spread>(spreadQueue, handler, ret));
+            var handler = result.Handler;
+
+            provider.ForEach(new InitCaller<Spread>(spreadQueue, handler, result));
 
             for (int level = spreadQueue.Length - 1; level > 0; --level)
             {
@@ -113,8 +112,6 @@ namespace Sandbox.GameScene.Lighting
                     handler.GetSpreadInfo(ref spread, out rectref);
                 }
             }
-
-            return ret;
         }
     }
 }

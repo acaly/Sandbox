@@ -53,7 +53,8 @@ namespace Sandbox.GameScene.Lighting
             provider.AddRectangles();
             var calc = new LightingCalculator(provider);
             LightingInit li = new LightingInit();
-            calc.Calculate(li);
+            var result = new LightnessResultAccess<Spread>(li);
+            calc.Calculate(result);
         }
 
         private static void Main2()

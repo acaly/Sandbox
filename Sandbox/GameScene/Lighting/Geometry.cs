@@ -514,7 +514,7 @@ namespace Sandbox.GameScene.Lighting.Geometry
             //calculate distance
             point = result.LinePosition;
 
-            //TODO store additional info
+            //TODO store additional info in bent spread
             var lsInfo = LightSpaceAdditionalInfo.Create();
             lshelper.CalculateAdditionalInfo(lsInfo);
 
