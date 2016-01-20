@@ -49,8 +49,9 @@ namespace Sandbox.GameScene.Lighting
                         rectrect.Range[dir + 2].Intersect(irectrect.Range[dir + 2]))
                     {
                         rectrefOutput.N = i;
-                        var data = rectangles[i].data; //TODO
-                        output.Process(rectrefOutput, ref irectrect, ref data);
+                        var rectdata = rectangles[i]; //TODO
+                        output.Process(rectrefOutput, ref irectrect, ref rectdata.data);
+                        rectangles[i] = rectdata;
                     }
                 }
                 else //negative side
@@ -60,8 +61,9 @@ namespace Sandbox.GameScene.Lighting
                         rectrect.Range[dir + 2].Intersect(irectrect.Range[dir + 2]))
                     {
                         rectrefOutput.N = i;
-                        var data = rectangles[i].data; //TODO
-                        output.Process(rectrefOutput, ref irectrect, ref data);
+                        var rectdata = rectangles[i]; //TODO
+                        output.Process(rectrefOutput, ref irectrect, ref rectdata.data);
+                        rectangles[i] = rectdata;
                     }
                 }
             }
@@ -99,8 +101,9 @@ namespace Sandbox.GameScene.Lighting
             {
                 var irectrect = rectangles[i].rect;
                 rectrefOutput.N = i;
-                var data = rectangles[i].data; //TODO
-                output.Process(rectrefOutput, ref irectrect, ref data);
+                var rectdata = rectangles[i]; //TODO
+                output.Process(rectrefOutput, ref irectrect, ref rectdata.data);
+                rectangles[i] = rectdata;
             }
         }
 
