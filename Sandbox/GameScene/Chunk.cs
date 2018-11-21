@@ -18,7 +18,7 @@ namespace Sandbox.GameScene
         [TexCoord(1)]
         public Vector4 dir_uv_index;
         [Color(0)]
-        public Vector4 col;
+        public uint col;
         [TexCoord(2)]
         public Vector4 aooffset;
         [Color(1)]
@@ -243,6 +243,7 @@ namespace Sandbox.GameScene
             }
         }
 
+        //Function not used
         private Vector4 GetColorFromInt(int color)
         {
             int x = color & 255;
@@ -346,7 +347,7 @@ namespace Sandbox.GameScene
                     buffer.Append(new BlockRenderData
                     {
                         pos = basePosition + coord.ToVector4(1.0f) + faceDir.coord.ToVector4(0) * 0.5f,
-                        col = GetColorFromInt(data.BlockColor),
+                        col = data.BlockColor,
                         dir_uv_index = new Vector4(face, 0, 0, 0),
                         aooffset = GetAOOffset(coord, face),
                         lightness = GetLightnessVec(coord, face),
