@@ -830,6 +830,7 @@ namespace Sandbox.Physics
                                             int layerIndex = (int)Math.Floor(oldPos.Z / LayerSize);
                                             int layerBegin = layerIndex > 0 ? layerIndex - 1 : 0;
                                             int layerEnd = layerIndex + 1;
+                                            if (grids[adjacentIndex].staticEntity == null) continue; //TODO A quick fix. Investigate
                                             if (layerEnd >= grids[adjacentIndex].staticEntity.CollisionSegments.Length)
                                             {
                                                 layerEnd = grids[adjacentIndex].staticEntity.CollisionSegments.Length - 1;

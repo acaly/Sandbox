@@ -13,6 +13,7 @@ using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static Sandbox.GameScene.WorldCoord;
 
 /* Speed test (device setup, draw the cube)
 loop: 68.2
@@ -32,7 +33,13 @@ namespace Sandbox
     {
         public Matrix4x4 transform;
     }
-    
+
+    public struct DirVectorList
+    {
+        public Vector4 u0, u1, u2, u3, u4, u5, u6, u7;
+        public Vector4 v0, v1, v2, v3, v4, v5, v6, v7;
+    }
+
     static class Program
     {
         public static Form MainForm;
@@ -67,6 +74,24 @@ namespace Sandbox
                 pipeline.SetConstant(ShaderType.Vertex, 0, pipelineConstant);
 
                 var proj = device.CreatePerspectiveFieldOfView((float)Math.PI / 4).Transpose();
+
+                {
+                    var pipelineConstantDir = pipeline.CreateConstantBuffer<DirVectorList>();
+                    pipelineConstantDir.Value.u0 = new Direction1(0).U().coord.ToVector4(0);
+                    pipelineConstantDir.Value.u1 = new Direction1(1).U().coord.ToVector4(0);
+                    pipelineConstantDir.Value.u2 = new Direction1(2).U().coord.ToVector4(0);
+                    pipelineConstantDir.Value.u3 = new Direction1(3).U().coord.ToVector4(0);
+                    pipelineConstantDir.Value.u4 = new Direction1(4).U().coord.ToVector4(0);
+                    pipelineConstantDir.Value.u5 = new Direction1(5).U().coord.ToVector4(0);
+                    pipelineConstantDir.Value.v0 = new Direction1(0).V().coord.ToVector4(0);
+                    pipelineConstantDir.Value.v1 = new Direction1(1).V().coord.ToVector4(0);
+                    pipelineConstantDir.Value.v2 = new Direction1(2).V().coord.ToVector4(0);
+                    pipelineConstantDir.Value.v3 = new Direction1(3).V().coord.ToVector4(0);
+                    pipelineConstantDir.Value.v4 = new Direction1(4).V().coord.ToVector4(0);
+                    pipelineConstantDir.Value.v5 = new Direction1(5).V().coord.ToVector4(0);
+                    pipeline.SetConstant(ShaderType.Vertex, 1, pipelineConstantDir);
+                    pipelineConstantDir.Update();
+                }
 
 #warning support sampler
                 //shaderFace.CreateSamplerForPixelShader(0, new SamplerStateDescription

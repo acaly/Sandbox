@@ -16,12 +16,10 @@ namespace Sandbox.GameScene
         [Position]
         public Vector4 pos;
         [TexCoord(1)]
-        public Vector4 dir_u;
-        [TexCoord(2)]
-        public Vector4 dir_v;
+        public Vector4 dir_uv_index;
         [Color(0)]
         public Vector4 col;
-        [TexCoord(3)]
+        [TexCoord(2)]
         public Vector4 aooffset;
         [Color(1)]
         public Vector4 lightness;
@@ -349,8 +347,7 @@ namespace Sandbox.GameScene
                     {
                         pos = basePosition + coord.ToVector4(1.0f) + faceDir.coord.ToVector4(0) * 0.5f,
                         col = GetColorFromInt(data.BlockColor),
-                        dir_u = 0.5f * faceDir.U().coord.ToVector4(0),
-                        dir_v = 0.5f * faceDir.V().coord.ToVector4(0),
+                        dir_uv_index = new Vector4(face, 0, 0, 0),
                         aooffset = GetAOOffset(coord, face),
                         lightness = GetLightnessVec(coord, face),
                     });

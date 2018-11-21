@@ -12,10 +12,9 @@ namespace Sandbox.Graphics
 struct VS_IN
 {
     float4 pos : POSITION;
-    float4 dir_u : TEXCOORD1;
-    float4 dir_v : TEXCOORD2;
+    float4 dir_uv_index : TEXCOORD1;
     float4 col : COLOR0;
-    float4 aooffset : TEXCOORD3;
+    float4 aooffset : TEXCOORD2;
     float4 lightness : COLOR1;
 };
 
@@ -38,9 +37,15 @@ struct PS_IN
     float4 pointCoord : TEXCOORD4;
 };
 
-cbuffer VS_CONSTANT_BUFFER
+cbuffer VS_CONSTANT_BUFFER : register(b0)
 {
 	float4x4 worldViewProj;
+}
+
+cbuffer VS_CONSTANT_BUFFER : register(b1)
+{
+	float4 dir_u[8];
+    float4 dir_v[8];
 }
 
 Texture2D faceTexture : register(t0);
@@ -50,13 +55,17 @@ GS_IN VS(VS_IN input)
 {
 	GS_IN output = (GS_IN)0;
 
+    int uvid = (int)input.dir_uv_index.x;
+    float4 input_dir_u = dir_u[uvid] * 0.5;
+    float4 input_dir_v = dir_v[uvid] * 0.5;
+
 	output.pos = mul(input.pos, worldViewProj);
-    output.dir_u = mul(input.dir_u, worldViewProj);
-    output.dir_v = mul(input.dir_v, worldViewProj);
+    output.dir_u = mul(input_dir_u, worldViewProj);
+    output.dir_v = mul(input_dir_v, worldViewProj);
     output.aooffset = input.aooffset;
 
     float3 lightdir = normalize(float3(0, 0.6, 4));
-    float nDotL = saturate(0.3 + 0.9 * dot(cross(input.dir_u.xyz, input.dir_v.xyz), -lightdir));
+    float nDotL = saturate(0.3 + 0.9 * dot(cross(input_dir_u.xyz, input_dir_v.xyz), -lightdir));
     //output.col = saturate(
     //    (
     //        nDotL * (input.lightness.x) * 1.2 +
