@@ -87,7 +87,6 @@
     <Compile Include="GameScene\WorldCoord.cs" />
     <Compile Include="Graphics\AmbientOcclusionTexture.cs" />
     <Compile Include="Graphics\BlockFaceShader.cs" />
-    <Compile Include="Graphics\DefaultShader.cs" />
     <Compile Include="Graphics\IRenderBuffer.cs" />
     <Compile Include="Graphics\RenderContext.cs" />
     <Compile Include="Graphics\RenderData.cs" />
@@ -95,12 +94,9 @@
     <Compile Include="Graphics\RenderLoopHelper.cs" />
     <Compile Include="Graphics\RenderManager.cs" />
     <Compile Include="Graphics\Shader.cs" />
-    <Compile Include="Graphics\TestShader.cs" />
     <Compile Include="Gui\GuiEnvironment.cs" />
     <Compile Include="Gui\GuiTexture.cs" />
     <Compile Include="Gui\GameSceneGui.cs" />
-    <Compile Include="HLSLGen\CompilerTest.cs" />
-    <Compile Include="HLSLGen\ShaderClassAttribute.cs" />
     <Compile Include="MultiCube.cs" />
     <Compile Include="Physics\AdditionalCollision.cs" />
     <Compile Include="Physics\Box.cs" />
