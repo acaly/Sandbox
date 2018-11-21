@@ -12,7 +12,7 @@ using SystemColor = System.Drawing.Color;
 
 namespace Sandbox.Graphics
 {
-    class AmbientOcculsionTexture : IDisposable
+    class AmbientOcclusionTexture : IDisposable
     {
         private Resource texture;
         private ShaderResourceView view;
@@ -26,7 +26,7 @@ namespace Sandbox.Graphics
             }
         }
 
-        public AmbientOcculsionTexture(RenderManager rm)
+        public AmbientOcclusionTexture(RenderManager rm)
         {
             var cellBorder = cellSize / 2;
             var cellRealSize = cellSize + cellBorder * 2;

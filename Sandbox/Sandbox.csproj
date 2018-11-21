@@ -85,7 +85,7 @@
     <Compile Include="GameScene\MovableGridObject.cs" />
     <Compile Include="GameScene\World.cs" />
     <Compile Include="GameScene\WorldCoord.cs" />
-    <Compile Include="Graphics\AmbientOcculsionTexture.cs" />
+    <Compile Include="Graphics\AmbientOcclusionTexture.cs" />
     <Compile Include="Graphics\BlockFaceShader.cs" />
     <Compile Include="Graphics\DefaultShader.cs" />
     <Compile Include="Graphics\IRenderBuffer.cs" />

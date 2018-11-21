@@ -123,7 +123,7 @@ namespace Sandbox
                     AddressV = TextureAddressMode.Border,
                     AddressW = TextureAddressMode.Border,
                 });
-                var aotexture = new AmbientOcculsionTexture(rm);
+                var aotexture = new AmbientOcclusionTexture(rm);
 
                 times.Add(clock.ElapsedMilliseconds);
 

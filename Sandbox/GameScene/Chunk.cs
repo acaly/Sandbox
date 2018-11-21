@@ -220,7 +220,7 @@ namespace Sandbox.GameScene
         {
             WorldCoord.Direction1 dir = new WorldCoord.Direction1(face);
             var offsetCoord = coord.WithOffset(dir.coord);
-            return AmbientOcculsionTexture.MakeAOOffset(
+            return AmbientOcclusionTexture.MakeAOOffset(
                 MakeAOInner(offsetCoord, dir.UVPN(0)),
                 MakeAOInner(offsetCoord, dir.UVPN(1)),
                 MakeAOInner(offsetCoord, dir.UVPN(2)),
