@@ -1,11 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2050
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sandbox", "Sandbox\Sandbox.csproj", "{7530BABC-66F8-4815-AC26-E26827FB92C7}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShaderCompiler", "ShaderCompiler\ShaderCompiler.csproj", "{81AAEC99-65A2-40A7-985E-D5F9FA30E266}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,12 +15,11 @@ Global
 		{7530BABC-66F8-4815-AC26-E26827FB92C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7530BABC-66F8-4815-AC26-E26827FB92C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7530BABC-66F8-4815-AC26-E26827FB92C7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{81AAEC99-65A2-40A7-985E-D5F9FA30E266}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{81AAEC99-65A2-40A7-985E-D5F9FA30E266}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{81AAEC99-65A2-40A7-985E-D5F9FA30E266}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{81AAEC99-65A2-40A7-985E-D5F9FA30E266}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {52756CA9-0B07-45A0-A89D-374492FD8425}
 	EndGlobalSection
 EndGlobal

@@ -24,6 +24,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -35,7 +36,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>Sandbox.HLSLGen.CompilerTest</StartupObject>
+    <StartupObject>Sandbox.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="SharpDX">
@@ -80,6 +81,7 @@
     <Compile Include="GameScene\Lighting\LightingCalculator.cs" />
     <Compile Include="GameScene\Lighting\LightingTest.cs" />
     <Compile Include="GameScene\Lighting\RectProvider.cs" />
+    <Compile Include="GameScene\Lighting\Sunlight.cs" />
     <Compile Include="GameScene\MovableGridObject.cs" />
     <Compile Include="GameScene\World.cs" />
     <Compile Include="GameScene\WorldCoord.cs" />
@@ -143,9 +145,6 @@
     <Error Condition="!Exists('..\packages\SharpFont.Dependencies.2.6\build\SharpFont.Dependencies.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SharpFont.Dependencies.2.6\build\SharpFont.Dependencies.props'))" />
     <Error Condition="!Exists('..\packages\SharpFont.3.0.1\build\SharpFont.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SharpFont.3.0.1\build\SharpFont.props'))" />
   </Target>
-  <PropertyGroup>
-    <PostBuildEvent>ShaderCompiler</PostBuildEvent>
-  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

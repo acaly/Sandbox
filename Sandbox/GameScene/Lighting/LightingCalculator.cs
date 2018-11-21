@@ -215,8 +215,10 @@ namespace Sandbox.GameScene.Lighting
                             goto lbl_check_failed;
                         }
                     }
-                    //add the spread
+                    //add the spread to result
                     result.AddRectSpread(rectref, ref spread);
+                    //spread it
+                    handler.SpreadSpread(ref rect, ref spread, theList);
 
                 lbl_check_failed: ;
                     //do nothing here

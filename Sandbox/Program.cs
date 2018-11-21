@@ -56,16 +56,20 @@ namespace Sandbox
                 rm.InitDevice();
 
                 GameScene.World theWorld = new GameScene.World(rm);
-                GameScene.Camera camera = new GameScene.Camera(new Vector3(0, 0, 70));
+                GameScene.Camera camera = new GameScene.Camera(new Vector3(0, 0, 50));
                 RenderDataManager rdm = new RenderDataManager(theWorld);
 
                 MainForm = rm.Form;
 
                 times.Add(clock.ElapsedMilliseconds);
 
+                theWorld.SetBlock(-100, -100, 0, new BlockData { BlockId = 1, BlockColor = 0 });
+                theWorld.SetBlock(100, -100, 0, new BlockData { BlockId = 1, BlockColor = 0 });
+                theWorld.SetBlock(-100, 100, 0, new BlockData { BlockId = 1, BlockColor = 0 });
+                theWorld.SetBlock(100, 100, 0, new BlockData { BlockId = 1, BlockColor = 0 });
                 //{
-                //NatsuTerrain.CreateWorld(theWorld, @"blocks.natsu", 5);
-                NatsuTerrain.CreateWorld(theWorld, @"E:\2.schematic.natsu", 5);
+                //NatsuTerrain.CreateWorld(theWorld, @"blocks.bin", 5);
+                NatsuTerrain.CreateWorld(theWorld, @"E:\1.schematic.natsu", 5);
                 //NatsuTerrain.CreateWorld(theWorld, @"E:\1.schematic.natsu", 5);
                 //}
                 //{

@@ -131,7 +131,7 @@ float4 PS(PS_IN input) : SV_Target
         input.lightness.x * input.pointCoord.x * input.pointCoord.y + 
         input.lightness.y * input.pointCoord.x * (1 - input.pointCoord.y) +
         input.lightness.z * (1 - input.pointCoord.x) * input.pointCoord.y + 
-        input.lightness.w * (1 - input.pointCoord.x) * (1 - input.pointCoord.y);
+        input.lightness.w * (1 - input.pointCoord.x) * (1 - input.pointCoord.y) + 0.2;
     ret = ret * lightness * 1.2;
 
     return ret;

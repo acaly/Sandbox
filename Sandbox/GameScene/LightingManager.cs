@@ -14,10 +14,10 @@ namespace Sandbox.GameScene
         {
             this.world = world;
 
-            generatedRange.xmin = x - 55;
-            generatedRange.xmax = x + 55;
-            generatedRange.ymin = y - 55;
-            generatedRange.ymax = y + 55;
+            generatedRange.xmin = x - 205;
+            generatedRange.xmax = x + 205;
+            generatedRange.ymin = y - 205;
+            generatedRange.ymax = y + 205;
             generatedRange.zmin = 0;
             generatedRange.zmax = World.ChunkHeight - 1;
 
