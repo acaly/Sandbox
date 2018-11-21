@@ -1,8 +1,9 @@
-﻿using Sandbox.Physics;
-using SharpDX;
+﻿using LightDx;
+using Sandbox.Physics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -28,25 +29,25 @@ namespace Sandbox.GameScene
 
         private Vector3 CalcOffset()
         {
-            Vector4 offset = new Vector4(-1, 0, 0, 0);
+            Vector4 offset = new Vector4(-10, 0, 0, 0);
             Vector4 x = new Vector4(0, 1, 0, 0);
-            offset = Vector4.Transform(offset, Matrix.RotationZ(yaw));
-            x = Vector4.Transform(x, Matrix.RotationZ(yaw));
+            offset = Vector4.Transform(offset, Matrix4x4.CreateRotationZ(yaw));
+            x = Vector4.Transform(x, Matrix4x4.CreateRotationZ(yaw));
             pitch = Math.Min((float)Math.PI / 2.001f, pitch);
             pitch = Math.Max((float)Math.PI / -2.001f, pitch);
-            offset = Vector4.Transform(offset, Matrix.RotationAxis(new Vector3(x.X, x.Y, x.Z), -pitch));
+            offset = Vector4.Transform(offset, Matrix4x4.CreateFromAxisAngle(new Vector3(x.X, x.Y, x.Z), -pitch));
             return new Vector3(offset.X, offset.Y, offset.Z);
         }
 
-        public Matrix GetViewMatrix()
+        public Matrix4x4 GetViewMatrix()
         {
-            return Matrix.LookAtLH(Position + eye_offset, Position + eye_offset + CalcOffset(), Vector3.UnitZ);
+            return MatrixHelper.CreateLookAt(Position + eye_offset, Position + eye_offset + CalcOffset(), Vector3.UnitZ).Transpose();
         }
 
         public Vector3 MoveHorizontal(Vector4 b)
         {
             Vector4 move = b;
-            move = Vector4.Transform(move, Matrix.RotationZ(yaw));
+            move = Vector4.Transform(move, Matrix4x4.CreateRotationZ(yaw));
             return new Vector3(move.X, move.Y, move.Z);
         }
 
@@ -77,12 +78,12 @@ namespace Sandbox.GameScene
         public void Step()
         {
             Vector3 acc;
-            Vector4 movedir = new Vector4();
+            Vector4 movedir = new Vector4(0, 0, 0.01f, 0);
             if (keys[Keys.W]) movedir.X -= 1;
             if (keys[Keys.S]) movedir.X += 1;
             if (keys[Keys.A]) movedir.Y += 1;
             if (keys[Keys.D]) movedir.Y -= 1;
-            movedir.Normalize();
+            movedir = Vector4.Normalize(movedir);
             acc = MoveHorizontal(movedir) * 30.0f;
             acc.Z = Acceloration.Z;
 

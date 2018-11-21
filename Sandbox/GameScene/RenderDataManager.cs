@@ -1,4 +1,5 @@
-﻿using Sandbox.Graphics;
+﻿using LightDx;
+using Sandbox.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,22 +52,20 @@ namespace Sandbox.GameScene
     class RenderDataManager : IDisposable
     {
         private World world;
+        private VertexDataProcessor<BlockRenderData> pipelineInput;
 
-        private List<RenderData<BlockRenderData>> renderDataList = new List<RenderData<BlockRenderData>>();
+        private List<VertexBuffer> renderDataList = new List<VertexBuffer>();
         private RenderBuffer myRenderBuffer;
 
         private const int RenderDataMaxLength = 16384;
 
         private BlockRenderData[] arrayBuffer;
         private int lastRenderDataLength;
-
-        private Action<RenderData<BlockRenderData>> setupRenderData;
-
+        
         private class RenderBuffer : IRenderBuffer<BlockRenderData>
         {
             private RenderDataManager manager;
-
-
+            
             public RenderBuffer(RenderDataManager manager)
             {
                 this.manager = manager;
@@ -77,12 +76,7 @@ namespace Sandbox.GameScene
                 if (manager.lastRenderDataLength >= RenderDataMaxLength)
                 {
                     //create last renderdata
-                    var rd = RenderData<BlockRenderData>.Create(manager.world.renderManager,
-                        SharpDX.Direct3D.PrimitiveTopology.PointList, manager.arrayBuffer);
-                    if (manager.setupRenderData != null)
-                    {
-                        manager.setupRenderData(rd);
-                    }
+                    var rd = manager.pipelineInput.CreateImmutableBuffer(manager.arrayBuffer);
                     manager.renderDataList.Add(rd);
                     manager.lastRenderDataLength = 0;
                 }
@@ -90,19 +84,12 @@ namespace Sandbox.GameScene
             }
         }
 
-        public RenderDataManager(World world)
+        public RenderDataManager(World world, VertexDataProcessor<BlockRenderData> pipelineInput)
         {
             this.world = world;
+            this.pipelineInput = pipelineInput;
             this.arrayBuffer = new BlockRenderData[RenderDataMaxLength];
             this.myRenderBuffer = new RenderBuffer(this);
-        }
-
-        public void SetLayoutFromShader<T>(Shader<T> shader) where T : struct
-        {
-            setupRenderData = delegate(RenderData<BlockRenderData> rd)
-            {
-                rd.SetLayoutFromShader(shader);
-            };
         }
 
         public void Flush()
@@ -114,12 +101,7 @@ namespace Sandbox.GameScene
                 chunk.FlushRenderData(myRenderBuffer);
             }
             //create the last render data object
-            var rd = RenderData<BlockRenderData>.Create(world.renderManager, SharpDX.Direct3D.PrimitiveTopology.PointList,
-                arrayBuffer, lastRenderDataLength);
-            if (setupRenderData != null)
-            {
-                setupRenderData(rd);
-            }
+            var rd = pipelineInput.CreateImmutableBuffer(arrayBuffer, 0, lastRenderDataLength);
             renderDataList.Add(rd);
         }
 
@@ -138,12 +120,11 @@ namespace Sandbox.GameScene
             ClearAllRenderData();
         }
 
-        public void Render(RenderContext frame)
+        public void Render()
         {
             foreach (var rd in renderDataList)
             {
-                frame.SetRenderData(rd);
-                frame.Draw(rd);
+                rd.DrawAll();
             }
         }
     }

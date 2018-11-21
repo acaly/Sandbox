@@ -1,23 +1,18 @@
-﻿using Sandbox.Font;
+﻿using LightDx;
 using Sandbox.GameScene;
 using Sandbox.Graphics;
 using Sandbox.Gui;
 using Sandbox.Terrain;
-using SharpDX;
-using SharpDX.D3DCompiler;
-using SharpDX.Direct3D;
-using SharpDX.Direct3D11;
-using SharpDX.Windows;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Format = SharpDX.DXGI.Format;
-using TextRenderer = Sandbox.Font.StaticTextRenderer;
 
 /* Speed test (device setup, draw the cube)
 loop: 68.2
@@ -35,7 +30,7 @@ namespace Sandbox
 {
     public struct VertexConstData
     {
-        public Matrix transform;
+        public Matrix4x4 transform;
     }
     
     static class Program
@@ -49,17 +44,54 @@ namespace Sandbox
             Stopwatch clock = new Stopwatch();
             clock.Start();
 
-            using (RenderManager rm = new RenderManager())
+            var form = new Form();
+            form.ClientSize = new Size(800, 600);
+
+            using (LightDevice device = LightDevice.Create(form))
             {
                 times.Add(clock.ElapsedMilliseconds);
 
-                rm.InitDevice();
+                var target0 = device.GetDefaultTarget();
+                target0.ClearColor = Color.AntiqueWhite.WithAlpha(1);
+                var target1 = device.CreateDepthStencilTarget();
 
-                GameScene.World theWorld = new GameScene.World(rm);
-                GameScene.Camera camera = new GameScene.Camera(new Vector3(0, 0, 50));
-                RenderDataManager rdm = new RenderDataManager(theWorld);
+                var target = new RenderTargetList(target0, target1);
+                target.Apply();
 
-                MainForm = rm.Form;
+                //var shaderFace = Shader<VertexConstData>.CreateFromString(device, BlockFaceShader.Value);
+                var pipeline = device.CompilePipeline(InputTopology.Point,
+                    ShaderSource.FromString(BlockFaceShader.Value,
+                        ShaderType.Vertex | ShaderType.Geometry | ShaderType.Pixel));
+                var pipelineInput = pipeline.CreateVertexDataProcessor<BlockRenderData>();
+                var pipelineConstant = pipeline.CreateConstantBuffer<VertexConstData>();
+                pipeline.SetConstant(ShaderType.Vertex, 0, pipelineConstant);
+
+                var proj = device.CreatePerspectiveFieldOfView((float)Math.PI / 4).Transpose();
+
+#warning support sampler
+                //shaderFace.CreateSamplerForPixelShader(0, new SamplerStateDescription
+                //{
+                //    Filter = Filter.MinMagMipLinear,
+                //    AddressU = TextureAddressMode.Border,
+                //    AddressV = TextureAddressMode.Border,
+                //    AddressW = TextureAddressMode.Border,
+                //});
+
+                Texture2D aotexture;
+                using (var aobitmap = AmbientOcclusionTexture.CreateBitmap())
+                {
+                    aotexture = device.CreateTexture2D(aobitmap);
+                    pipeline.SetResource(0, aotexture);
+                }
+                
+                times.Add(clock.ElapsedMilliseconds);
+
+                World theWorld = new World(device);
+                Camera camera = new Camera(new Vector3(0, 0, 50));
+                var gameSceneGui = new GameSceneGui(device, camera);
+                RenderDataManager rdm = new RenderDataManager(theWorld, pipelineInput);
+
+                MainForm = form;
 
                 times.Add(clock.ElapsedMilliseconds);
 
@@ -87,7 +119,7 @@ namespace Sandbox
                             if (true && x >= -2 && x <= 2 && y >= -2 && y <= 2)
                             {
                                 //for (int z = 0; z < 4; ++z)
-                                    theWorld.SetBlock(x, y, 1, new BlockData { BlockId = 1, BlockColor = 16777215 });
+                                theWorld.SetBlock(x, y, 1, new BlockData { BlockId = 1, BlockColor = 16777215 });
                             }
                             //if (x == -20 || x == 20 || y == -20 || y == 20)
                             //{
@@ -111,19 +143,6 @@ namespace Sandbox
                 times.Add(clock.ElapsedMilliseconds);
 
                 LightingManager lighting = new LightingManager(theWorld, 0, 0);
-                //return;
-
-                times.Add(clock.ElapsedMilliseconds);
-
-                var shaderFace = Shader<VertexConstData>.CreateFromString(rm, BlockFaceShader.Value);
-                shaderFace.CreateSamplerForPixelShader(0, new SamplerStateDescription
-                {
-                    Filter = Filter.MinMagMipLinear,
-                    AddressU = TextureAddressMode.Border,
-                    AddressV = TextureAddressMode.Border,
-                    AddressW = TextureAddressMode.Border,
-                });
-                var aotexture = new AmbientOcclusionTexture(rm);
 
                 times.Add(clock.ElapsedMilliseconds);
 
@@ -131,21 +150,13 @@ namespace Sandbox
                 {
                     chunk.FlushCollision();
                 }
-                rdm.SetLayoutFromShader(shaderFace);
                 rdm.Flush();
-                shaderFace.SetResourceForPixelShader(0, aotexture.ResourceView);
 
                 times.Add(clock.ElapsedMilliseconds);
 
-                camera.SetForm(rm.Form);
+                camera.SetForm(form);
                 theWorld.AddEntity(camera);
-
-                var proj = Matrix.PerspectiveFovLH((float)Math.PI / 4.0f, 800.0f / 600.0f, 0.1f, 1000.0f);
-
-                GuiEnvironment gui = new GuiEnvironment(rm);
-
-                //return;
-
+                
                 EventWaitHandle physicsStartEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
                 EventWaitHandle physicsFinishEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
 
@@ -161,20 +172,20 @@ namespace Sandbox
                 //    }
                 //}));
                 //physicsThread.Start();
-                
+
                 //GC.Collect();
 
                 //rm.ImmediateContext.SetRenderData(rdm.renderData);
 
                 ///////////////////////////////////////////////
-                var device = rm.Device;
-                var context = device.ImmediateContext;
+                ///
 
-                FontFace.CreateFonts(rm);
-                var gameSceneGui = new GameSceneGui(gui, camera);
+                form.Show();
 
-                RenderLoopHelper.Run(rm, false, delegate(RenderContext frame)
+                device.RunLoop(delegate ()
                 {
+                    target.ClearAll();
+
                     //--- logic---
 
                     camera.Step(); //can't be paralleled with physics
@@ -183,26 +194,24 @@ namespace Sandbox
                     theWorld.StepPhysics(1.0f / 60);
 
                     //--- render world ---
-                    rm.ImmediateContext.ApplyShader(shaderFace);
+                    pipeline.Apply();
+                    
+                    pipelineConstant.Value.transform = proj * camera.GetViewMatrix();
+                    pipelineConstant.Update();
 
-                    shaderFace.buffer.transform = Matrix.Multiply(camera.GetViewMatrix(), proj);
-                    shaderFace.buffer.transform.Transpose();
-                    frame.UpdateShaderConstant(shaderFace);
-
-                    rdm.Render(frame);
+                    rdm.Render();
 
                     //--- render gui ---
-
-                    gui.BeginEnvironment();
+                    
                     gameSceneGui.Render();
-                    gui.EndEnvironment();
 
                     //--- present ---
 
-                    frame.Present(true);
+                    device.Present(true);
 
                     //physicsFinishEvent.WaitOne();
                 });
+
                 //physicsThread.Abort();
             }
         }

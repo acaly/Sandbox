@@ -1,11 +1,11 @@
-﻿using Sandbox.Graphics;
+﻿using LightDx.InputAttributes;
+using Sandbox.Graphics;
 using Sandbox.Physics;
-using SharpDX;
-using SharpDX.DXGI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,17 +13,17 @@ namespace Sandbox.GameScene
 {
     public struct BlockRenderData
     {
-        [RenderDataElement(Format.R32G32B32A32_Float, "POSITION", 0)]
+        [Position]
         public Vector4 pos;
-        [RenderDataElement(Format.R32G32B32A32_Float, "TEXCOORD", 1)]
+        [TexCoord(1)]
         public Vector4 dir_u;
-        [RenderDataElement(Format.R32G32B32A32_Float, "TEXCOORD", 2)]
+        [TexCoord(2)]
         public Vector4 dir_v;
-        [RenderDataElement(Format.R32G32B32A32_Float, "COLOR", 0)]
+        [Color(0)]
         public Vector4 col;
-        [RenderDataElement(Format.R32G32B32A32_Float, "TEXCOORD", 3)]
+        [TexCoord(3)]
         public Vector4 aooffset;
-        [RenderDataElement(Format.R32G32B32A32_Float, "COLOR", 1)]
+        [Color(1)]
         public Vector4 lightness;
     }
 
@@ -169,8 +169,8 @@ namespace Sandbox.GameScene
                 //add
                 collisionList.Add(new Box
                 {
-                    center = new SharpDX.Vector3(x, y, z),
-                    halfSize = new SharpDX.Vector3(0.5f, 0.5f, 0.5f),
+                    center = new Vector3(x, y, z),
+                    halfSize = new Vector3(0.5f, 0.5f, 0.5f),
                 });
             }
         }
@@ -187,7 +187,7 @@ namespace Sandbox.GameScene
 
             base.CollisionArray = new Box[0];
             base.CollisionCount = 0;
-            base.Position = new SharpDX.Vector3(pos.x, pos.y, pos.z);
+            base.Position = new Vector3(pos.x, pos.y, pos.z);
             base.CollisionSegments = new int[h / World.ChunkLayerHeight + 1];
 
             init.OnNewChunk(pos, this);

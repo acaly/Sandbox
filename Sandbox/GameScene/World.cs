@@ -1,8 +1,10 @@
-﻿using Sandbox.Graphics;
+﻿using LightDx;
+using Sandbox.Graphics;
 using Sandbox.Physics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,7 +15,7 @@ namespace Sandbox.GameScene
         GridPhysicWorld physics;
         CoordDictionary<Chunk, World> chunks;
         public List<Chunk> chunkList = new List<Chunk>();
-        public RenderManager renderManager;
+        public LightDevice device;
 
         //used by chunks to make their collision list
         public List<Box> collisionBuffer = new List<Box>();
@@ -42,11 +44,11 @@ namespace Sandbox.GameScene
             }
         }
 
-        public World(RenderManager renderManager)
+        public World(LightDevice device)
         {
             chunks = new CoordDictionary<Chunk, World>(this);
             InitPhysics();
-            this.renderManager = renderManager;
+            this.device = device;
         }
 
         public BlockData GetBlock(int x, int y, int z)
@@ -126,7 +128,7 @@ namespace Sandbox.GameScene
 
         private void AddChunkToPhysics(int x, int y, Chunk chunk)
         {
-            var pos = new SharpDX.Vector3(x, y, 0);
+            var pos = new Vector3(x, y, 0);
             physics.SetGridEntity(pos, chunk.GetStaticEntity());
         }
 
