@@ -64,7 +64,7 @@ namespace Sandbox
 
                 var target = new RenderTargetList(target0, target1);
                 target.Apply();
-
+                
                 //var shaderFace = Shader<VertexConstData>.CreateFromString(device, BlockFaceShader.Value);
                 var pipeline = device.CompilePipeline(InputTopology.Point,
                     ShaderSource.FromString(BlockFaceShader.Value,
@@ -72,7 +72,7 @@ namespace Sandbox
                 var pipelineInput = pipeline.CreateVertexDataProcessor<BlockRenderData>();
                 var pipelineConstant = pipeline.CreateConstantBuffer<VertexConstData>();
                 pipeline.SetConstant(ShaderType.Vertex, 0, pipelineConstant);
-
+                
                 var proj = device.CreatePerspectiveFieldOfView((float)Math.PI / 4).Transpose();
 
                 {

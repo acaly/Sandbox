@@ -40,8 +40,8 @@
     <StartupObject>Sandbox.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="LightDx, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\LightDx.0.1.8\lib\net47\LightDx.dll</HintPath>
+    <Reference Include="LightDx, Version=0.1.10.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\LightDx.0.1.10\lib\net47\LightDx.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

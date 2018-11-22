@@ -12,7 +12,7 @@ namespace Sandbox.Graphics
 struct VS_IN
 {
     float4 pos : POSITION;
-    float4 dir_uv_index : TEXCOORD1;
+    float dir_uv_index : TEXCOORD1;
     float4 col : COLOR0;
     float4 aooffset : TEXCOORD2;
     float4 lightness : COLOR1;
