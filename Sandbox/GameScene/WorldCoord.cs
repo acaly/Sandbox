@@ -23,6 +23,16 @@ namespace Sandbox.GameScene
             return "{" + x + ", " + y + ", " + z + "}";
         }
 
+        public static bool operator == (WorldCoord a, WorldCoord b)
+        {
+            return a.x == b.x && a.y == b.y && a.z == b.z;
+        }
+
+        public static bool operator !=(WorldCoord a, WorldCoord b)
+        {
+            return !(a == b);
+        }
+
         public WorldCoord WithOffset(WorldCoord coord)
         {
             return new WorldCoord { x = x + coord.x, y = y + coord.y, z = z + coord.z };

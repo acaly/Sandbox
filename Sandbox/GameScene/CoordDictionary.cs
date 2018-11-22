@@ -63,10 +63,12 @@ namespace Sandbox.GameScene
             }
         }
 
-        Node[] nodes;
-        int count;
-        TInit initValue;
-        int freeNext;
+        private Node[] nodes;
+        private int count;
+        private TInit initValue;
+        private int freeNext;
+        
+        private volatile int cachePos1, cachePos2;
 
         public CoordDictionary(TInit init)
             : this(init, 37)
@@ -88,12 +90,16 @@ namespace Sandbox.GameScene
 
         public bool Contains(WorldCoord pos)
         {
+            var cachedResult = TryGetCache(pos);
+            if (cachedResult != null) return true;
+
             int s = GetStartPosition(pos, (uint)nodes.Length);
             if (nodes[s].next == 0) return false;
             while (true)
             {
-                if (nodes[s].key.x == pos.x && nodes[s].key.y == pos.y && nodes[s].key.z == pos.z)
+                if (nodes[s].key == pos)
                 {
+                    UpdateCache(s);
                     return true;
                 }
                 if (nodes[s].next == -1) return false;
@@ -101,14 +107,40 @@ namespace Sandbox.GameScene
             }
         }
 
+        private TValue TryGetCache(WorldCoord pos)
+        {
+            var i = cachePos1;
+            if (nodes[i].key == pos)
+            {
+                return nodes[i].value;
+            }
+            i = cachePos2;
+            if (nodes[i].key == pos)
+            {
+                return nodes[i].value;
+            }
+            return null;
+        }
+
+        private void UpdateCache(int val)
+        {
+            if (cachePos1 == val || cachePos2 == val) return;
+            cachePos1 = cachePos2;
+            cachePos2 = val;
+        }
+
         public TValue Get(WorldCoord pos)
         {
+            var cachedResult = TryGetCache(pos);
+            if (cachedResult != null) return cachedResult;
+
             int s = GetStartPosition(pos, (uint)nodes.Length);
             if (nodes[s].next == 0) return null;
             while (true)
             {
-                if (nodes[s].key.x == pos.x && nodes[s].key.y == pos.y && nodes[s].key.z == pos.z)
+                if (nodes[s].key == pos)
                 {
+                    UpdateCache(s);
                     return nodes[s].value;
                 }
                 if (nodes[s].next == -1) return null;
@@ -181,6 +213,9 @@ namespace Sandbox.GameScene
 
         public TValue GetOrCreate(WorldCoord pos)
         {
+            var cachedResult = TryGetCache(pos);
+            if (cachedResult != null) return cachedResult;
+
             EnsureSize();
             int s = GetStartPosition(pos, (uint)nodes.Length);
             if (nodes[s].next == 0)
@@ -189,11 +224,12 @@ namespace Sandbox.GameScene
                 nodes[s].key = pos;
                 nodes[s].next = -1;
                 nodes[s].value = ret;
+                UpdateCache(s);
                 return ret;
             }
             while (true)
             {
-                if (nodes[s].key.x == pos.x && nodes[s].key.y == pos.y && nodes[s].key.z == pos.z)
+                if (nodes[s].key == pos)
                 {
                     return nodes[s].value;
                 }
@@ -205,6 +241,7 @@ namespace Sandbox.GameScene
                     nodes[free].key = pos;
                     nodes[free].next = -1;
                     nodes[free].value = ret;
+                    UpdateCache(free);
                     return ret;
                 }
                 s = nodes[s].next - 1;
