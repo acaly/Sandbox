@@ -57,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GameScene\BlockData.cs" />
+    <Compile Include="GameScene\Raytracing\BlockRegionBitmapStatic.cs" />
     <Compile Include="GameScene\Camera.cs" />
     <Compile Include="GameScene\Chunk.cs" />
     <Compile Include="GameScene\CoordDictionary.cs" />
@@ -67,6 +68,8 @@
     <Compile Include="GameScene\Lighting\RectProvider.cs" />
     <Compile Include="GameScene\Lighting\Sunlight.cs" />
     <Compile Include="GameScene\MovableGridObject.cs" />
+    <Compile Include="GameScene\Raytracing\RaytracingAccelerator.cs" />
+    <Compile Include="GameScene\Raytracing\RaytracingLightingManager.cs" />
     <Compile Include="GameScene\RenderDataManager.cs" />
     <Compile Include="GameScene\World.cs" />
     <Compile Include="GameScene\WorldCoord.cs" />

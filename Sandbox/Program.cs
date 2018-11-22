@@ -1,5 +1,6 @@
 ﻿using LightDx;
 using Sandbox.GameScene;
+using Sandbox.GameScene.Raytracing;
 using Sandbox.Graphics;
 using Sandbox.Gui;
 using Sandbox.Terrain;
@@ -168,6 +169,11 @@ namespace Sandbox
                 times.Add(clock.ElapsedMilliseconds);
 
                 LightingManager lighting = new LightingManager(theWorld, 0, 0);
+
+                times.Add(clock.ElapsedMilliseconds);
+
+                var rtlighting = new RaytracingAccelerator();
+                rtlighting.Build(theWorld, new WorldCoord(-50, -50, 0), new WorldCoord(50, 50, 100));
 
                 times.Add(clock.ElapsedMilliseconds);
 

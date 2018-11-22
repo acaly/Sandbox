@@ -33,6 +33,15 @@ namespace Sandbox.GameScene
             return !(a == b);
         }
 
+        public override bool Equals(object obj)
+        {
+            if (obj is WorldCoord x)
+            {
+                return this == x;
+            }
+            return base.Equals(obj);
+        }
+
         public WorldCoord WithOffset(WorldCoord coord)
         {
             return new WorldCoord { x = x + coord.x, y = y + coord.y, z = z + coord.z };
